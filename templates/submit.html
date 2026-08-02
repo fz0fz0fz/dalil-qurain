@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}إضافة بياناتي - دليل خدمات القرين{% endblock %}
+{% block content %}
+
+<h1>➕ إضافة أو تحديث بياناتك</h1>
+<p>اختر نوع الخدمة التي تقدمها، ثم أدخل بياناتك بدقة. ستظهر بياناتك مباشرة للعملاء في دليل خدمات القرين.</p>
+
+<form method="post" action="{{ url_for('submit') }}" class="submit-form">
+
+    <div class="form-group">
+        <label for="category_id">نوع الخدمة</label>
+        <select name="category_id" id="category_id" onchange="showFields()" required>
+            <option value="">-- اختر نوع الخدمة --</option>
+            {% for cat in categories %}
+                <option value="{{ cat.id }}">{{ cat.icon }} {{ cat.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    {% for cat in categories %}
+        <div class="field-group" id="fields-{{ cat.id }}" style="display:none;">
+            {% for field in cat.get_fields() %}
+                <div class="form-group">
+                    <label for="field_{{ cat.id }}_{{ field.key }}">
+                        {{ field.label }}{% if field.required %} *{% endif %}
+                    </label>
+                    <input
+                        type="text"
+                        name="field_{{ cat.id }}_{{ field.key }}"
+                        id="field_{{ cat.id }}_{{ field.key }}"
+                        {% if field.required %}required{% endif %}
+                    >
+                </div>
+            {% endfor %}
+        </div>
+    {% endfor %}
+
+    <button type="submit" class="btn-primary">إرسال البيانات</button>
+</form>
+
+<script src="{{ url_for('static', filename='js/submit.js') }}"></script>
+{% endblock %}
