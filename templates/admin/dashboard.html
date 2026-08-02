@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}لوحة تحكم الإدارة{% endblock %}
+{% block content %}
+
+<h1>🛠️ لوحة تحكم الإدارة</h1>
+
+<div class="admin-stats">
+    <div class="stat-card">
+        <span class="stat-number">{{ categories_count }}</span>
+        <span class="stat-label">عدد الفئات</span>
+    </div>
+    <div class="stat-card">
+        <span class="stat-number">{{ listings_count }}</span>
+        <span class="stat-label">عدد الإدخالات الكلي</span>
+    </div>
+</div>
+
+<div class="admin-links">
+    <a href="{{ url_for('admin_listings') }}" class="btn-primary">إدارة الإدخالات (حذف العبث والتكرار)</a>
+    <a href="{{ url_for('admin_categories') }}" class="btn-secondary">إدارة الفئات والنصوص الثابتة</a>
+    <a href="{{ url_for('admin_logout') }}" class="btn-secondary">تسجيل الخروج</a>
+</div>
+
+{% endblock %}
