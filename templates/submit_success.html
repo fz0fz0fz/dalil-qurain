@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}تم الإرسال بنجاح{% endblock %}
+{% block content %}
+
+<div class="success-box">
+    <h1>✅ تم إرسال بياناتك بنجاح</h1>
+    <p>ستظهر بياناتك الآن مباشرة في دليل خدمات القرين.</p>
+    <a href="{{ url_for('index') }}" class="btn-primary">عرض الدليل</a>
+    <a href="{{ url_for('submit') }}" class="btn-secondary">إضافة بيانات أخرى</a>
+</div>
+
+{% endblock %}
