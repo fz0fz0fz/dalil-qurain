@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}تسجيل دخول الإدارة{% endblock %}
+{% block content %}
+
+<div class="admin-login-box">
+    <h1>🔐 تسجيل دخول الإدارة</h1>
+    <form method="post">
+        <div class="form-group">
+            <label for="username">اسم المستخدم</label>
+            <input type="text" name="username" id="username" required>
+        </div>
+        <div class="form-group">
+            <label for="password">كلمة المرور</label>
+            <input type="password" name="password" id="password" required>
+        </div>
+        <button type="submit" class="btn-primary">دخول</button>
+    </form>
+</div>
+
+{% endblock %}
