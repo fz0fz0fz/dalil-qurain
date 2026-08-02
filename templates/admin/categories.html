@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}إدارة الفئات{% endblock %}
+{% block content %}
+
+<h1>🗂️ إدارة الفئات</h1>
+
+<table class="admin-table">
+    <thead>
+        <tr>
+            <th>الفئة</th>
+            <th>النوع</th>
+            <th>الحالة</th>
+            <th>إجراء</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for cat in categories %}
+        <tr>
+            <td>{{ cat.icon }} {{ cat.name }}</td>
+            <td>{{ "ثابتة" if cat.kind == "static" else "ديناميكية" }}</td>
+            <td>{{ "مفعّلة" if cat.is_active else "معطّلة" }}</td>
+            <td class="actions-cell">
+                {% if cat.kind == "static" %}
+                    <a href="{{ url_for('admin_edit_static', category_id=cat.id) }}" class="btn-secondary">تعديل النص</a>
+                {% endif %}
+                <form method="post" action="{{ url_for('admin_toggle_category', category_id=cat.id) }}">
+                    <button type="submit" class="btn-secondary">
+                        {{ "تعطيل" if cat.is_active else "تفعيل" }}
+                    </button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<a href="{{ url_for('admin_dashboard') }}" class="btn-secondary">رجوع للوحة التحكم</a>
+
+{% endblock %}
