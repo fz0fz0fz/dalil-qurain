@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}دليل خدمات القرين{% endblock %}
+{% block content %}
+
+<h1>📌 دليل خدمات القرين والدليمية</h1>
+<p class="updated-note">آخر تحديث لهذه الصفحة: {{ now.strftime('%Y-%m-%d %H:%M') }}</p>
+
+{% set last_group = "" %}
+{% for item in items %}
+    {% set cat = item.category %}
+    {% if cat.group_name and cat.group_name != last_group %}
+        <h2 class="group-title">{{ cat.group_name }}</h2>
+        {% set last_group = cat.group_name %}
+    {% endif %}
+
+    <section class="category-block">
+        <h3>{{ cat.icon }} {{ cat.name }}</h3>
+
+        {% if cat.kind == "static" %}
+            <div class="static-block">{{ cat.static_content or "لا يوجد محتوى حالياً." }}</div>
+
+        {% else %}
+            {% if item.listings %}
+                <ul class="listing-list">
+                {% for listing in item.listings %}
+                    <li class="listing-item">
+                        {% for field in cat.get_fields() %}
+                            {% set value = listing.get(field.key) %}
+                            {% if value %}
+                                <span class="field"><strong>{{ field.label }}:</strong> {{ value }}</span>
+                            {% endif %}
+                        {% endfor %}
+                    </li>
+                {% endfor %}
+                </ul>
+            {% else %}
+                <p class="empty-note">لا توجد بيانات مدخلة حالياً في هذه الفئة.</p>
+            {% endif %}
+        {% endif %}
+    </section>
+{% endfor %}
+
+{% endblock %}
