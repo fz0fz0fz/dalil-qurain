@@ -12,16 +12,19 @@ from extensions import db
 from models import Category, Listing
 
 
-def create_app():
+ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
     db.init_app(app)
 
     with app.app_context():
         db.create_all()
+        from seed_data import seed_categories
+        seed_categories()
 
     register_routes(app)
     return app
+
 
 
 def admin_required(view_func):
