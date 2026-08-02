@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}تعديل {{ category.name }}{% endblock %}
+{% block content %}
+
+<h1>✏️ تعديل محتوى: {{ category.icon }} {{ category.name }}</h1>
+
+<form method="post">
+    <div class="form-group">
+        <label for="static_content">النص الكامل الذي سيظهر في الدليل</label>
+        <textarea name="static_content" id="static_content" rows="15">{{ category.static_content or "" }}</textarea>
+    </div>
+    <button type="submit" class="btn-primary">حفظ التعديلات</button>
+    <a href="{{ url_for('admin_categories') }}" class="btn-secondary">إلغاء</a>
+</form>
+
+{% endblock %}
