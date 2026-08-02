@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}إدارة الإدخالات{% endblock %}
+{% block content %}
+
+<h1>📋 إدارة الإدخالات</h1>
+
+<form method="get" class="filter-form">
+    <label for="category_id">تصفية حسب الفئة</label>
+    <select name="category_id" id="category_id" onchange="this.form.submit()">
+        <option value="">كل الفئات</option>
+        {% for cat in categories %}
+            <option value="{{ cat.id }}" {% if selected_category == cat.id %}selected{% endif %}>
+                {{ cat.icon }} {{ cat.name }}
+            </option>
+        {% endfor %}
+    </select>
+</form>
+
+<table class="admin-table">
+    <thead>
+        <tr>
+            <th>الفئة</th>
+            <th>البيانات</th>
+            <th>تاريخ الإدخال</th>
+            <th>إجراء</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for listing in listings %}
+        <tr>
+            <td>{{ listing.category.icon }} {{ listing.category.name }}</td>
+            <td>
+                {% for field in listing.category.get_fields() %}
+                    {% set value = listing.get(field.key) %}
+                    {% if value %}
+                        <div><strong>{{ field.label }}:</strong> {{ value }}</div>
+                    {% endif %}
+                {% endfor %}
+            </td>
+            <td>{{ listing.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td>
+                <form method="post" action="{{ url_for('admin_delete_listing', listing_id=listing.id) }}"
+                      onsubmit="return confirm('هل أنت متأكد من حذف هذا الإدخال؟');">
+                    <button type="submit" class="btn-danger">حذف</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4">لا توجد إدخالات حالياً.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<a href="{{ url_for('admin_dashboard') }}" class="btn-secondary">رجوع للوحة التحكم</a>
+
+{% endblock %}
