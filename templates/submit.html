@@ -1,41 +1,70 @@
 {% extends "base.html" %}
-{% block title %}إضافة بياناتي - دليل خدمات القرين{% endblock %}
+{% block title %}إضافة بيانات مقدم خدمة{% endblock %}
 {% block content %}
 
-<h1>➕ إضافة أو تحديث بياناتك</h1>
-<p>اختر نوع الخدمة التي تقدمها، ثم أدخل بياناتك بدقة. ستظهر بياناتك مباشرة للعملاء في دليل خدمات القرين.</p>
+<section class="hero-card compact">
+    <div>
+        <h1>➕ إضافة بيانات مقدم الخدمة</h1>
+        <p class="lead">هذه الصفحة مخصصة لمقدم الخدمة فقط. بعد الحفظ ستظهر البيانات مباشرة في صفحة الدليل وصفحة القراءة الخاصة بالذكاء الاصطناعي، مع إمكانية إخفائها لاحقًا من لوحة الإدارة.</p>
+    </div>
+</section>
 
-<form method="post" action="{{ url_for('submit') }}" class="submit-form">
-
+<form method="post" action="{{ url_for('submit') }}" class="card-form submit-form">
     <div class="form-group">
         <label for="category_id">نوع الخدمة</label>
         <select name="category_id" id="category_id" onchange="showFields()" required>
             <option value="">-- اختر نوع الخدمة --</option>
             {% for cat in categories %}
-                <option value="{{ cat.id }}">{{ cat.icon }} {{ cat.name }}</option>
+                <option value="{{ cat.id }}">{{ cat.display_order }} - {{ cat.icon }} {{ cat.name }}</option>
             {% endfor %}
         </select>
     </div>
 
     {% for cat in categories %}
         <div class="field-group" id="fields-{{ cat.id }}" style="display:none;">
+            <div class="field-group-title">بيانات {{ cat.icon }} {{ cat.name }}</div>
             {% for field in cat.get_fields() %}
                 <div class="form-group">
                     <label for="field_{{ cat.id }}_{{ field.key }}">
                         {{ field.label }}{% if field.required %} *{% endif %}
                     </label>
-                    <input
-                        type="text"
-                        name="field_{{ cat.id }}_{{ field.key }}"
-                        id="field_{{ cat.id }}_{{ field.key }}"
-                        {% if field.required %}required{% endif %}
-                    >
+
+                    {% if field.type == 'textarea' %}
+                        <textarea
+                            name="field_{{ cat.id }}_{{ field.key }}"
+                            id="field_{{ cat.id }}_{{ field.key }}"
+                            rows="4"
+                            {% if field.maxlength %}maxlength="{{ field.maxlength }}"{% endif %}
+                            {% if field.required %}required{% endif %}
+                            placeholder="{{ 'بحد أقصى ' ~ field.maxlength ~ ' حرف' if field.maxlength else '' }}"
+                        ></textarea>
+                    {% elif field.type == 'select' %}
+                        <select name="field_{{ cat.id }}_{{ field.key }}" id="field_{{ cat.id }}_{{ field.key }}" {% if field.required %}required{% endif %}>
+                            <option value="">-- اختر --</option>
+                            {% for option in field.options or [] %}
+                                <option value="{{ option }}">{{ option }}</option>
+                            {% endfor %}
+                        </select>
+                    {% else %}
+                        <input
+                            type="{{ 'url' if field.type == 'url' else ('tel' if field.type == 'tel' else 'text') }}"
+                            name="field_{{ cat.id }}_{{ field.key }}"
+                            id="field_{{ cat.id }}_{{ field.key }}"
+                            {% if field.maxlength %}maxlength="{{ field.maxlength }}"{% endif %}
+                            {% if field.required %}required{% endif %}
+                        >
+                    {% endif %}
                 </div>
             {% endfor %}
         </div>
     {% endfor %}
 
-    <button type="submit" class="btn-primary">إرسال البيانات</button>
+    <div class="notice-box">
+        <strong>مهم:</strong>
+        تأكد من صحة رقم الجوال والروابط، لأن البيانات ستظهر مباشرة للعملاء ولصفحة الذكاء الاصطناعي بعد الحفظ.
+    </div>
+
+    <button type="submit" class="btn-primary full-width">حفظ البيانات</button>
 </form>
 
 <script src="{{ url_for('static', filename='js/submit.js') }}"></script>
