@@ -1,24 +1,21 @@
 {% extends "base.html" %}
-{% block title %}لوحة تحكم الإدارة{% endblock %}
+{% block title %}لوحة الإدارة{% endblock %}
 {% block content %}
+<h1>🛠️ لوحة إدارة الدليل</h1>
 
-<h1>🛠️ لوحة تحكم الإدارة</h1>
-
-<div class="admin-stats">
-    <div class="stat-card">
-        <span class="stat-number">{{ categories_count }}</span>
-        <span class="stat-label">عدد الفئات</span>
-    </div>
-    <div class="stat-card">
-        <span class="stat-number">{{ listings_count }}</span>
-        <span class="stat-label">عدد الإدخالات الكلي</span>
-    </div>
+<div class="stats-grid">
+    <div class="stat-card"><span class="stat-number">{{ categories_count }}</span><span class="stat-label">إجمالي الفئات</span></div>
+    <div class="stat-card"><span class="stat-number">{{ dynamic_categories_count }}</span><span class="stat-label">فئات ديناميكية</span></div>
+    <div class="stat-card"><span class="stat-number">{{ static_categories_count }}</span><span class="stat-label">فئات ثابتة</span></div>
+    <div class="stat-card"><span class="stat-number">{{ listings_count }}</span><span class="stat-label">إجمالي الإدخالات</span></div>
+    <div class="stat-card"><span class="stat-number">{{ visible_listings_count }}</span><span class="stat-label">إدخالات ظاهرة</span></div>
+    <div class="stat-card"><span class="stat-number">{{ hidden_listings_count }}</span><span class="stat-label">إدخالات مخفية</span></div>
 </div>
 
-<div class="admin-links">
-    <a href="{{ url_for('admin_listings') }}" class="btn-primary">إدارة الإدخالات (حذف العبث والتكرار)</a>
-    <a href="{{ url_for('admin_categories') }}" class="btn-secondary">إدارة الفئات والنصوص الثابتة</a>
-    <a href="{{ url_for('admin_logout') }}" class="btn-secondary">تسجيل الخروج</a>
+<div class="admin-links wide-links">
+    <a href="{{ url_for('admin_listings') }}" class="btn-primary">إدارة إدخالات مقدمي الخدمة</a>
+    <a href="{{ url_for('admin_categories') }}" class="btn-secondary">إدارة الفئات</a>
+    <a href="{{ url_for('ai_page') }}" class="btn-secondary" target="_blank" rel="noopener">فتح صفحة الذكاء الاصطناعي</a>
+    <a href="{{ url_for('admin_logout') }}" class="btn-danger">تسجيل الخروج</a>
 </div>
-
 {% endblock %}
