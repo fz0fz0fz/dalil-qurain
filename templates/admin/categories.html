@@ -1,32 +1,37 @@
 {% extends "base.html" %}
 {% block title %}إدارة الفئات{% endblock %}
 {% block content %}
-
-<h1>🗂️ إدارة الفئات</h1>
+<div class="section-head">
+    <h1>🗂️ إدارة الفئات</h1>
+    <a href="{{ url_for('admin_new_category') }}" class="btn-primary">إضافة فئة جديدة</a>
+</div>
 
 <table class="admin-table">
     <thead>
         <tr>
+            <th>الترتيب</th>
             <th>الفئة</th>
+            <th>المجموعة</th>
             <th>النوع</th>
             <th>الحالة</th>
-            <th>إجراء</th>
+            <th>الإجراءات</th>
         </tr>
     </thead>
     <tbody>
         {% for cat in categories %}
         <tr>
+            <td>{{ cat.display_order }}</td>
             <td>{{ cat.icon }} {{ cat.name }}</td>
-            <td>{{ "ثابتة" if cat.kind == "static" else "ديناميكية" }}</td>
-            <td>{{ "مفعّلة" if cat.is_active else "معطّلة" }}</td>
+            <td>{{ cat.group_name or '-' }}</td>
+            <td>{{ 'ثابتة' if cat.kind == 'static' else 'ديناميكية' }}</td>
+            <td>{{ 'مفعلة' if cat.is_active else 'معطلة' }}</td>
             <td class="actions-cell">
-                {% if cat.kind == "static" %}
-                    <a href="{{ url_for('admin_edit_static', category_id=cat.id) }}" class="btn-secondary">تعديل النص</a>
-                {% endif %}
+                <a href="{{ url_for('admin_edit_category', category_id=cat.id) }}" class="btn-secondary">تعديل</a>
                 <form method="post" action="{{ url_for('admin_toggle_category', category_id=cat.id) }}">
-                    <button type="submit" class="btn-secondary">
-                        {{ "تعطيل" if cat.is_active else "تفعيل" }}
-                    </button>
+                    <button type="submit" class="btn-secondary">{{ 'تعطيل' if cat.is_active else 'تفعيل' }}</button>
+                </form>
+                <form method="post" action="{{ url_for('admin_delete_category', category_id=cat.id) }}" onsubmit="return confirm('سيتم حذف الفئة وكل إدخالاتها، هل أنت متأكد؟');">
+                    <button type="submit" class="btn-danger">حذف</button>
                 </form>
             </td>
         </tr>
@@ -34,6 +39,5 @@
     </tbody>
 </table>
 
-<a href="{{ url_for('admin_dashboard') }}" class="btn-secondary">رجوع للوحة التحكم</a>
-
+<a href="{{ url_for('admin_dashboard') }}" class="btn-secondary">رجوع للوحة الإدارة</a>
 {% endblock %}
