@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}صفحة الذكاء الاصطناعي - دليل خدمات القرين{% endblock %}
+{% block content %}
+<section class="hero-card compact">
+    <div>
+        <h1>🤖 صفحة القراءة المخصصة للذكاء الاصطناعي</h1>
+        <p class="lead">استخدم هذا الرابط داخل تطبيق الرد الذكي. الصفحة مرتبة كنص واضح حسب الأرقام والفئات حتى يسهل على الذكاء الاصطناعي قراءة المحتوى والإجابة على العملاء.</p>
+        <p class="updated-note">آخر تحديث عام للصفحة: {{ now.strftime('%Y-%m-%d %H:%M') }}</p>
+    </div>
+</section>
+
+<div class="ai-page">
+{% set last_group = "" %}
+{% for item in items %}
+    {% set cat = item.category %}
+    {% if cat.group_name and cat.group_name != last_group %}
+        <h2 class="group-title">{{ cat.group_name }}</h2>
+        {% set last_group = cat.group_name %}
+    {% endif %}
+
+    <section class="category-block ai-block">
+        <h3>{{ cat.display_order }} - {{ cat.icon }} {{ cat.name }}</h3>
+        {% if cat.kind == 'static' %}
+            <div class="static-block">{{ cat.static_content or 'لا يوجد محتوى حالياً.' }}</div>
+        {% else %}
+            {% if item.listings %}
+                {% for listing in item.listings %}
+                    <div class="ai-listing">
+                        - الاسم: {{ listing.get('name') or 'غير محدد' }}
+                        {% if listing.phone %}<br>- الجوال: {{ listing.phone }}{% endif %}
+                        {% if listing.get('service_description') %}<br>- الوصف: {{ listing.get('service_description') }}{% endif %}
+                        {% if listing.get('location') %}<br>- الموقع: {{ listing.get('location') }}{% endif %}
+                        {% if listing.get('price') %}<br>- الأسعار: {{ listing.get('price') }}{% endif %}
+                        {% if listing.get('working_hours') %}<br>- أوقات العمل: {{ listing.get('working_hours') }}{% endif %}
+                        {% if listing.get('maps_url') %}<br>- رابط الخرائط: {{ listing.get('maps_url') }}{% endif %}
+                        {% if listing.get('social_url') %}<br>- رابط الخدمة: {{ listing.get('social_url') }}{% endif %}
+                        <br>- آخر تحديث الإدخال: {{ (listing.updated_at or listing.created_at).strftime('%Y-%m-%d %H:%M') }}
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p class="empty-note">لا توجد بيانات حالياً في هذه الفئة.</p>
+            {% endif %}
+        {% endif %}
+    </section>
+{% endfor %}
+</div>
+{% endblock %}
