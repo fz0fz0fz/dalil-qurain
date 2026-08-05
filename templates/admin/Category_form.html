@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}{{ 'إضافة فئة' if is_new else 'تعديل فئة' }}{% endblock %}
+{% block content %}
+<h1>{{ '➕ إضافة فئة جديدة' if is_new else '✏️ تعديل الفئة' }}</h1>
+
+<form method="post" class="card-form">
+    <div class="form-row two-cols">
+        <div class="form-group">
+            <label for="group_name">اسم المجموعة</label>
+            <input type="text" name="group_name" id="group_name" value="{{ category.group_name or '' }}">
+        </div>
+        <div class="form-group">
+            <label for="name">اسم الفئة *</label>
+            <input type="text" name="name" id="name" value="{{ category.name or '' }}" required>
+        </div>
+    </div>
+
+    <div class="form-row three-cols">
+        <div class="form-group">
+            <label for="icon">الأيقونة</label>
+            <input type="text" name="icon" id="icon" value="{{ category.icon or '' }}">
+        </div>
+        <div class="form-group">
+            <label for="kind">نوع الفئة</label>
+            <select name="kind" id="kind" onchange="toggleKindFields()">
+                <option value="dynamic" {% if category.kind == 'dynamic' %}selected{% endif %}>ديناميكية</option>
+                <option value="static" {% if category.kind == 'static' %}selected{% endif %}>ثابتة</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label for="display_order">الترتيب</label>
+            <input type="number" name="display_order" id="display_order" value="{{ category.display_order or 0 }}">
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="is_active">الحالة</label>
+        <select name="is_active" id="is_active">
+            <option value="1" {% if category.is_active %}selected{% endif %}>مفعلة</option>
+            <option value="0" {% if not category.is_active %}selected{% endif %}>معطلة</option>
+        </select>
+    </div>
+
+    <div id="dynamic-fields-box">
+        <div class="notice-box">
+            <strong>تعريف الحقول JSON:</strong>
+            اتركه كما هو لاستخدام الحقول الافتراضية، أو عدّله عند الحاجة. الحقول الافتراضية تشمل: الاسم، الجوال، الوصف، الموقع، رابط الخرائط، الأسعار، أوقات العمل، رابط تيك توك أو إنستغرام.
+        </div>
+        <div class="form-group inline-check">
+            <label><input type="checkbox" name="use_default_fields" value="1"> استخدام الحقول الافتراضية تلقائيًا</label>
+        </div>
+        <div class="form-group">
+            <label for="field_schema_text">تعريف الحقول</label>
+            <textarea name="field_schema_text" id="field_schema_text" rows="16">{{ schema_text }}</textarea>
+        </div>
+    </div>
+
+    <div id="static-fields-box">
+        <div class="form-group">
+            <label for="static_content">المحتوى الثابت</label>
+            <textarea name="static_content" id="static_content" rows="16">{{ category.static_content or '' }}</textarea>
+        </div>
+    </div>
+
+    <div class="hero-actions">
+        <button type="submit" class="btn-primary">حفظ الفئة</button>
+        <a href="{{ url_for('admin_categories') }}" class="btn-secondary">إلغاء</a>
+    </div>
+</form>
+
+<script>
+function toggleKindFields() {
+    const kind = document.getElementById('kind').value;
+    document.getElementById('dynamic-fields-box').style.display = kind === 'dynamic' ? 'block' : 'none';
+    document.getElementById('static-fields-box').style.display = kind === 'static' ? 'block' : 'none';
+}
+document.addEventListener('DOMContentLoaded', toggleKindFields);
+</script>
+{% endblock %}
