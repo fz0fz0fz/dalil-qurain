@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}الصفحة غير موجودة{% endblock %}
+{% block content %}
+<div class="success-box">
+    <h1>404</h1>
+    <p>عذرًا، الصفحة المطلوبة غير موجودة.</p>
+    <a href="{{ url_for('index') }}" class="btn-primary">العودة للدليل</a>
+</div>
+{% endblock %}
