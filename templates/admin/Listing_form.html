@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}تعديل إدخال{% endblock %}
+{% block content %}
+<h1>✏️ تعديل إدخال: {{ category.icon }} {{ category.name }}</h1>
+
+<form method="post" class="card-form">
+    {% for field in category.get_fields() %}
+        {% set value = listing.get(field.key) %}
+        <div class="form-group">
+            <label for="field_{{ field.key }}">{{ field.label }}{% if field.required %} *{% endif %}</label>
+            {% if field.type == 'textarea' %}
+                <textarea name="field_{{ field.key }}" id="field_{{ field.key }}" rows="4" {% if field.maxlength %}maxlength="{{ field.maxlength }}"{% endif %} {% if field.required %}required{% endif %}>{{ value }}</textarea>
+            {% elif field.type == 'select' %}
+                <select name="field_{{ field.key }}" id="field_{{ field.key }}" {% if field.required %}required{% endif %}>
+                    <option value="">-- اختر --</option>
+                    {% for option in field.options or [] %}
+                        <option value="{{ option }}" {% if value == option %}selected{% endif %}>{{ option }}</option>
+                    {% endfor %}
+                </select>
+            {% else %}
+                <input type="{{ 'url' if field.type == 'url' else ('tel' if field.type == 'tel' else 'text') }}" name="field_{{ field.key }}" id="field_{{ field.key }}" value="{{ value }}" {% if field.maxlength %}maxlength="{{ field.maxlength }}"{% endif %} {% if field.required %}required{% endif %}>
+            {% endif %}
+        </div>
+    {% endfor %}
+
+    <div class="form-group">
+        <label for="is_visible">حالة الظهور</label>
+        <select name="is_visible" id="is_visible">
+            <option value="1" {% if listing.is_visible %}selected{% endif %}>ظاهر</option>
+            <option value="0" {% if not listing.is_visible %}selected{% endif %}>مخفي</option>
+        </select>
+    </div>
+
+    <div class="hero-actions">
+        <button type="submit" class="btn-primary">حفظ التعديل</button>
+        <a href="{{ url_for('admin_listings') }}" class="btn-secondary">رجوع</a>
+    </div>
+</form>
+{% endblock %}
