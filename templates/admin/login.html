@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block title %}تسجيل دخول الإدارة{% endblock %}
 {% block content %}
-
 <div class="admin-login-box">
     <h1>🔐 تسجيل دخول الإدارة</h1>
-    <form method="post">
+    <p class="lead small">تم تحسين تسجيل الدخول بإيقاف مؤقت بعد تكرار المحاولات الخاطئة. يفضّل استخدام كلمة مرور قوية عبر متغيرات البيئة.</p>
+    <form method="post" class="card-form">
         <div class="form-group">
             <label for="username">اسم المستخدم</label>
             <input type="text" name="username" id="username" required>
@@ -13,8 +13,7 @@
             <label for="password">كلمة المرور</label>
             <input type="password" name="password" id="password" required>
         </div>
-        <button type="submit" class="btn-primary">دخول</button>
+        <button type="submit" class="btn-primary full-width">دخول</button>
     </form>
 </div>
-
 {% endblock %}
