@@ -1,14 +1,14 @@
 function showFields() {
-    var select = document.getElementById('category_id');
-    var groups = document.querySelectorAll('.field-group');
+    const select = document.getElementById('category_id');
+    const groups = document.querySelectorAll('.field-group');
 
     groups.forEach(function (group) {
         group.style.display = 'none';
     });
 
-    var selectedId = select.value;
+    const selectedId = select ? select.value : '';
     if (selectedId) {
-        var target = document.getElementById('fields-' + selectedId);
+        const target = document.getElementById('fields-' + selectedId);
         if (target) {
             target.style.display = 'block';
         }
