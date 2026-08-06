@@ -1,39 +1,83 @@
 {% extends "base.html" %}
-{% block title %}تعديل إدخال{% endblock %}
+{% block title %}إدارة الإدخالات{% endblock %}
 {% block content %}
-<h1>✏️ تعديل إدخال: {{ category.icon }} {{ category.name }}</h1>
+<h1>📋 إدارة إدخالات مقدمي الخدمة</h1>
 
-<form method="post" class="card-form">
-    {% for field in category.get_fields() %}
-        {% set value = listing.get(field.key) %}
-        <div class="form-group">
-            <label for="field_{{ field.key }}">{{ field.label }}{% if field.required %} *{% endif %}</label>
-            {% if field.type == 'textarea' %}
-                <textarea name="field_{{ field.key }}" id="field_{{ field.key }}" rows="4" {% if field.maxlength %}maxlength="{{ field.maxlength }}"{% endif %} {% if field.required %}required{% endif %}>{{ value }}</textarea>
-            {% elif field.type == 'select' %}
-                <select name="field_{{ field.key }}" id="field_{{ field.key }}" {% if field.required %}required{% endif %}>
-                    <option value="">-- اختر --</option>
-                    {% for option in field.options or [] %}
-                        <option value="{{ option }}" {% if value == option %}selected{% endif %}>{{ option }}</option>
-                    {% endfor %}
-                </select>
-            {% else %}
-                <input type="{{ 'url' if field.type == 'url' else ('tel' if field.type == 'tel' else 'text') }}" name="field_{{ field.key }}" id="field_{{ field.key }}" value="{{ value }}" {% if field.maxlength %}maxlength="{{ field.maxlength }}"{% endif %} {% if field.required %}required{% endif %}>
-            {% endif %}
-        </div>
-    {% endfor %}
-
+<form method="get" class="filter-card filters-grid compact-grid">
     <div class="form-group">
-        <label for="is_visible">حالة الظهور</label>
-        <select name="is_visible" id="is_visible">
-            <option value="1" {% if listing.is_visible %}selected{% endif %}>ظاهر</option>
-            <option value="0" {% if not listing.is_visible %}selected{% endif %}>مخفي</option>
+        <label for="q">بحث</label>
+        <input type="text" name="q" id="q" value="{{ search_query }}" placeholder="اسم، خدمة، رقم">
+    </div>
+    <div class="form-group">
+        <label for="category_id">الفئة</label>
+        <select name="category_id" id="category_id">
+            <option value="">كل الفئات</option>
+            {% for cat in categories %}
+                <option value="{{ cat.id }}" {% if selected_category == cat.id %}selected{% endif %}>{{ cat.display_order }} - {{ cat.icon }} {{ cat.name }}</option>
+            {% endfor %}
         </select>
     </div>
-
-    <div class="hero-actions">
-        <button type="submit" class="btn-primary">حفظ التعديل</button>
-        <a href="{{ url_for('admin_listings') }}" class="btn-secondary">رجوع</a>
+    <div class="form-group">
+        <label for="location">الموقع</label>
+        <select name="location" id="location">
+            <option value="">كل المواقع</option>
+            <option value="القرين" {% if selected_location == 'القرين' %}selected{% endif %}>القرين</option>
+            <option value="الدليمية" {% if selected_location == 'الدليمية' %}selected{% endif %}>الدليمية</option>
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="visibility">الحالة</label>
+        <select name="visibility" id="visibility">
+            <option value="all" {% if selected_visibility == 'all' %}selected{% endif %}>الكل</option>
+            <option value="visible" {% if selected_visibility == 'visible' %}selected{% endif %}>الظاهرة</option>
+            <option value="hidden" {% if selected_visibility == 'hidden' %}selected{% endif %}>المخفية</option>
+        </select>
+    </div>
+    <div class="filter-actions">
+        <button type="submit" class="btn-primary">تطبيق</button>
+        <a href="{{ url_for('admin_listings') }}" class="btn-secondary">إعادة ضبط</a>
     </div>
 </form>
+
+<table class="admin-table">
+    <thead>
+        <tr>
+            <th>الفئة</th>
+            <th>البيانات</th>
+            <th>الحالة</th>
+            <th>آخر تحديث</th>
+            <th>إجراء</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for listing in listings %}
+        <tr>
+            <td>{{ listing.category.display_order }} - {{ listing.category.icon }} {{ listing.category.name }}</td>
+            <td>
+                {% for field in listing.category.get_fields() %}
+                    {% set value = listing.get(field.key) %}
+                    {% if value %}
+                        <div><strong>{{ field.label }}:</strong> {{ value }}</div>
+                    {% endif %}
+                {% endfor %}
+            </td>
+            <td>{{ 'ظاهر' if listing.is_visible else 'مخفي' }}</td>
+            <td>{{ (listing.updated_at or listing.created_at).strftime('%Y-%m-%d %H:%M') }}</td>
+            <td class="actions-cell">
+                <a href="{{ url_for('admin_edit_listing', listing_id=listing.id) }}" class="btn-secondary">تعديل</a>
+                <form method="post" action="{{ url_for('admin_toggle_listing', listing_id=listing.id) }}">
+                    <button type="submit" class="btn-secondary">{{ 'إخفاء' if listing.is_visible else 'إظهار' }}</button>
+                </form>
+                <form method="post" action="{{ url_for('admin_delete_listing', listing_id=listing.id) }}" onsubmit="return confirm('هل أنت متأكد من حذف هذا الإدخال؟');">
+                    <button type="submit" class="btn-danger">حذف</button>
+                </form>
+            </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5">لا توجد إدخالات مطابقة.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<a href="{{ url_for('admin_dashboard') }}" class="btn-secondary">رجوع للوحة الإدارة</a>
 {% endblock %}
