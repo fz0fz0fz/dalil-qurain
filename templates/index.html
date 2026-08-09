@@ -4,15 +4,17 @@
 
 <section class="hero-card">
     <div>
+<section class="hero-card">
+    <div>
         <h1>📌 دليل خدمات القرين والدليمية</h1>
-        <p class="lead">هذه الصفحة مرتبة بحيث تكون مناسبة للزوار، وفي نفس الوقت يستطيع الذكاء الاصطناعي قراءة محتواها والإجابة على العملاء بناءً على الخدمات الظاهرة فيها.</p>
+        <p class="lead">هذه الصفحة تعرض الخدمات والبيانات المحدثة بشكل مرتب وسهل للزوار ومقدمي الخدمات.</p>
         <p class="updated-note">آخر تحديث: {{ now.strftime('%Y-%m-%d %H:%M') }}</p>
     </div>
     <div class="hero-actions">
         <a href="{{ url_for('submit') }}" class="btn-primary">إضافة بيانات مقدم خدمة</a>
-        <a href="{{ url_for('ai_page') }}" class="btn-secondary">فتح نسخة الذكاء الاصطناعي</a>
     </div>
 </section>
+
 
 <section class="filter-card">
     <h2>🔎 البحث والتصفية</h2>
