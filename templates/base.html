@@ -3,7 +3,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}دليل خدمات القرين{% endblock %}</title>
-    <meta name="description" content="دليل خدمات القرين والدليمية، وصفحة مخصصة لقراءة الذكاء الاصطناعي ومقدمي الخدمات.">
+    <meta name="description" content="دليل خدمات القرين والدليمية لعرض الخدمات العامة ومقدمي الخدمة بشكل منظم ومحدث.">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% block head %}{% endblock %}
 </head>
@@ -16,7 +16,6 @@
             </div>
             <nav class="top-nav">
                 <a href="{{ url_for('index') }}">الدليل</a>
-                <a href="{{ url_for('ai_page') }}">صفحة الذكاء الاصطناعي</a>
                 <a href="{{ url_for('submit') }}">إضافة بياناتي</a>
                 {% if session.get('is_admin') %}
                     <a href="{{ url_for('admin_dashboard') }}">لوحة الإدارة</a>
@@ -42,11 +41,10 @@
         <div class="container footer-wrap">
             <div>
                 <strong>دليل خدمات القرين</strong>
-                <p>صفحة عامة يقرأها الذكاء الاصطناعي + صفحة إدخال لمقدمي الخدمة + لوحة إدارة.</p>
+                <p>منصة موحدة لعرض الخدمات العامة ومقدمي الخدمة في القرين والدليمية.</p>
             </div>
             <div class="footer-links">
                 <a href="{{ url_for('submit') }}">إضافة بياناتي</a>
-                <a href="{{ url_for('ai_page') }}">رابط القراءة للذكاء الاصطناعي</a>
                 <a href="{{ url_for('admin_login') }}">الإدارة</a>
             </div>
         </div>
