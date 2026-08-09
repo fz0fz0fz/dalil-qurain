@@ -167,29 +167,36 @@ def parse_field_schema(field_schema_text, use_default_fields=False):
         if not isinstance(item, dict):
             errors.append(f"العنصر رقم {idx} في تعريف الحقول غير صحيح.")
             continue
+
         key = (item.get("key") or "").strip()
         label = (item.get("label") or "").strip()
         field_type = (item.get("type") or "text").strip()
+
         if not key or not label:
             errors.append(f"العنصر رقم {idx} يحتاج key و label.")
             continue
+
         if field_type not in allowed_types:
             errors.append(f"نوع الحقل في العنصر رقم {idx} غير مدعوم.")
             continue
+
         cleaned_item = {
             "key": key,
             "label": label,
             "type": field_type,
             "required": bool(item.get("required", False)),
         }
+
         if item.get("maxlength"):
             cleaned_item["maxlength"] = int(item["maxlength"])
+
         if field_type == "select":
             options = item.get("options") or []
             if not options:
                 errors.append(f"الحقل {label} من نوع select ويحتاج options.")
                 continue
             cleaned_item["options"] = options
+
         cleaned.append(cleaned_item)
 
     if errors:
@@ -260,6 +267,7 @@ def parse_bulk_listings_text(raw_text):
             cleaned = clean_import_line(line)
             if not cleaned:
                 continue
+
             if not first_non_noise:
                 first_non_noise = cleaned
             else:
@@ -287,6 +295,7 @@ def parse_bulk_listings_text(raw_text):
 def upsert_listing_for_category(category, entry_data):
     normalized_phone = normalize_phone(entry_data.get("phone", "").strip())
     existing_listing = None
+
     if normalized_phone:
         existing_listing = (
             Listing.query.filter_by(category_id=category.id)
@@ -332,7 +341,8 @@ def build_public_items(query_text="", location="", category_id=None, include_emp
             .all()
         )
         listings = [listing for listing in listings if listing_matches(listing, query_text, location)]
-        if include_empty or listings:
+
+        if include_empty or listings or (cat.static_content and cat.static_content.strip()):
             items.append({"category": cat, "listings": listings})
 
     return items
@@ -368,11 +378,13 @@ def admin_is_locked(app):
     locked_until = session.get("admin_locked_until")
     if not locked_until:
         return False, None
+
     locked_until_dt = datetime.fromisoformat(locked_until)
     if datetime.utcnow() >= locked_until_dt:
         session.pop("admin_locked_until", None)
         session.pop("admin_login_attempts", None)
         return False, None
+
     return True, locked_until_dt
 
 
@@ -443,6 +455,7 @@ def register_routes(app):
     @app.route("/admin/login", methods=["GET", "POST"])
     def admin_login():
         locked, locked_until = admin_is_locked(app)
+
         if request.method == "POST":
             if locked:
                 minutes = max(1, int((locked_until - datetime.utcnow()).total_seconds() // 60))
@@ -451,6 +464,7 @@ def register_routes(app):
 
             username = request.form.get("username", "").strip()
             password = request.form.get("password", "")
+
             if username == app.config["ADMIN_USERNAME"] and check_admin_password(app, password):
                 session.clear()
                 session.permanent = True
@@ -461,6 +475,7 @@ def register_routes(app):
 
             attempts = session.get("admin_login_attempts", 0) + 1
             session["admin_login_attempts"] = attempts
+
             if attempts >= app.config["ADMIN_LOGIN_MAX_ATTEMPTS"]:
                 lock_minutes = app.config["ADMIN_LOGIN_LOCK_MINUTES"]
                 session["admin_locked_until"] = (datetime.utcnow() + timedelta(minutes=lock_minutes)).isoformat()
@@ -507,6 +522,7 @@ def register_routes(app):
             visibility=visibility,
         )
         categories = Category.query.order_by(Category.display_order.asc()).all()
+
         return render_template(
             "admin/listings.html",
             listings=listings,
@@ -522,6 +538,7 @@ def register_routes(app):
     def admin_edit_listing(listing_id):
         listing = Listing.query.get_or_404(listing_id)
         category = listing.category
+
         if request.method == "POST":
             entry_data, errors = collect_listing_data(category, request.form, "field_")
             if errors:
@@ -566,9 +583,15 @@ def register_routes(app):
     @app.route("/admin/categories/new", methods=["GET", "POST"])
     @admin_required
     def admin_new_category():
-        category = Category(kind="dynamic", is_active=True, field_schema=default_dynamic_fields())
+        category = Category(
+            kind="dynamic",
+            is_active=True,
+            field_schema=default_dynamic_fields(),
+            static_content="",
+        )
         if request.method == "POST":
             return save_category_form(category, is_new=True)
+
         return render_template(
             "admin/category_form.html",
             category=category,
@@ -582,6 +605,7 @@ def register_routes(app):
         category = Category.query.get_or_404(category_id)
         if request.method == "POST":
             return save_category_form(category, is_new=False)
+
         return render_template(
             "admin/category_form.html",
             category=category,
@@ -593,14 +617,29 @@ def register_routes(app):
     @admin_required
     def admin_bulk_import_category(category_id):
         category = Category.query.get_or_404(category_id)
+
         if request.method == "POST":
             raw_text = request.form.get("bulk_text", "")
             fallback_location = request.form.get("fallback_location", "").strip()
-            entries = parse_bulk_listings_text(raw_text)
+            import_mode = request.form.get("import_mode", "raw").strip()
 
+            if import_mode == "raw":
+                category.static_content = raw_text.strip()
+                db.session.commit()
+                flash("تم حفظ النص كما هو داخل الفئة بنجاح.", "success")
+                return redirect(url_for("admin_categories"))
+
+            entries = parse_bulk_listings_text(raw_text)
             if not entries:
-                flash("لم يتم التعرف على أي إدخالات قابلة للاستيراد. تأكد من وجود اسم ورقم جوال لكل عنصر.", "error")
-                return render_template("admin/bulk_import.html", category=category, bulk_text=raw_text)
+                flash(
+                    "لم يتم التعرف على أي إدخالات قابلة للاستيراد. تأكد من وجود اسم ورقم جوال لكل عنصر.",
+                    "error",
+                )
+                return render_template(
+                    "admin/bulk_import.html",
+                    category=category,
+                    bulk_text=raw_text,
+                )
 
             created_count = 0
             updated_count = 0
@@ -612,6 +651,7 @@ def register_routes(app):
 
                 normalized_entry = {}
                 errors = []
+
                 for field in category.get_fields():
                     key = field["key"]
                     value = (entry.get(key, "") or "").strip()
@@ -631,13 +671,23 @@ def register_routes(app):
                     updated_count += 1
 
             db.session.commit()
+
             if created_count or updated_count:
-                flash(f"تم الاستيراد بنجاح. جديد: {created_count} | محدث: {updated_count}", "success")
+                flash(
+                    f"تم الاستيراد كإدخالات بنجاح. جديد: {created_count} | محدث: {updated_count}",
+                    "success",
+                )
+
             if skipped:
                 flash("بعض الأسطر لم تُستورد: " + " || ".join(skipped[:5]), "error")
+
             return redirect(url_for("admin_categories"))
 
-        return render_template("admin/bulk_import.html", category=category, bulk_text="")
+        return render_template(
+            "admin/bulk_import.html",
+            category=category,
+            bulk_text=category.static_content or "",
+        )
 
     def save_category_form(category, is_new=False):
         group_name = request.form.get("group_name", "").strip()
@@ -646,31 +696,40 @@ def register_routes(app):
         kind = "dynamic"
         display_order = request.form.get("display_order", type=int) or 0
         is_active = request.form.get("is_active") == "1"
-        static_content = ""
         field_schema_text = request.form.get("field_schema_text", "")
         use_default_fields = request.form.get("use_default_fields") == "1"
 
         errors = []
+
         if not name:
             errors.append("اسم الفئة مطلوب.")
-        existing = Category.query.filter(Category.name == name, Category.id != category.id).first() if category.id else Category.query.filter_by(name=name).first()
+
+        existing = (
+            Category.query.filter(Category.name == name, Category.id != category.id).first()
+            if category.id
+            else Category.query.filter_by(name=name).first()
+        )
         if existing:
             errors.append("يوجد فئة أخرى بنفس الاسم.")
 
-        field_schema, schema_errors = parse_field_schema(field_schema_text, use_default_fields=use_default_fields)
+        field_schema, schema_errors = parse_field_schema(
+            field_schema_text,
+            use_default_fields=use_default_fields,
+        )
         errors.extend(schema_errors)
 
         if errors:
             for error in errors:
                 flash(error, "error")
+
             category.group_name = group_name
             category.name = name
             category.icon = icon
             category.kind = kind
             category.display_order = display_order
             category.is_active = is_active
-            category.static_content = static_content
             category.field_schema = field_schema if field_schema is not None else category.field_schema
+
             return render_template(
                 "admin/category_form.html",
                 category=category,
@@ -684,11 +743,13 @@ def register_routes(app):
         category.kind = kind
         category.display_order = display_order
         category.is_active = is_active
-        category.static_content = ""
         category.field_schema = field_schema
 
         if is_new:
+            if category.static_content is None:
+                category.static_content = ""
             db.session.add(category)
+
         db.session.commit()
         flash("تم حفظ الفئة بنجاح.", "success")
         return redirect(url_for("admin_categories"))
