@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}إدارة الفئات{% endblock %}
+
 {% block content %}
 <div class="section-head">
     <h1>🗂️ إدارة الفئات</h1>
@@ -7,7 +8,12 @@
 </div>
 
 <div class="notice-box">
-    كل الفئات هنا ديناميكية وقابلة للإضافة من مقدم الخدمة، وبإمكانك أيضًا إدخال بيانات جاهزة دفعة واحدة عن طريق النسخ واللصق من زر <strong>استيراد دفعة</strong>.
+    جميع الفئات هنا ديناميكية وقابلة للإدارة من لوحة التحكم.
+    <br>
+    يمكنك:
+    <br>- تعديل اسم الفئة وترتيبها وأيقونتها وحقولها
+    <br>- استقبال إدخالات مقدمي الخدمة من صفحة الإضافة
+    <br>- أو إدخال محتوى جاهز دفعة واحدة عبر النسخ واللصق من زر <strong>استيراد دفعة</strong>
 </div>
 
 <table class="admin-table">
@@ -17,6 +23,7 @@
             <th>الفئة</th>
             <th>المجموعة</th>
             <th>الحالة</th>
+            <th>المحتوى</th>
             <th>الإجراءات</th>
         </tr>
     </thead>
@@ -24,16 +31,43 @@
         {% for cat in categories %}
         <tr>
             <td>{{ cat.display_order }}</td>
-            <td>{{ cat.icon }} {{ cat.name }}</td>
+
+            <td>
+                <strong>{{ cat.icon }} {{ cat.name }}</strong>
+            </td>
+
             <td>{{ cat.group_name or '-' }}</td>
-            <td>{{ 'مفعلة' if cat.is_active else 'معطلة' }}</td>
+
+            <td>
+                <span class="badge {{ 'badge-dynamic' if cat.is_active else 'badge-static' }}">
+                    {{ 'مفعلة' if cat.is_active else 'معطلة' }}
+                </span>
+            </td>
+
+            <td>
+                {% if cat.static_content %}
+                    <span class="badge badge-static">يوجد نص محفوظ</span>
+                {% else %}
+                    <span class="badge badge-dynamic">بدون نص محفوظ</span>
+                {% endif %}
+            </td>
+
             <td class="actions-cell">
                 <a href="{{ url_for('admin_edit_category', category_id=cat.id) }}" class="btn-secondary">تعديل</a>
-                <a href="{{ url_for('admin_bulk_import_category', category_id=cat.id) }}" class="btn-primary">استيراد دفعة</a>
+
+                <a href="{{ url_for('admin_bulk_import_category', category_id=cat.id) }}" class="btn-primary">
+                    استيراد دفعة
+                </a>
+
                 <form method="post" action="{{ url_for('admin_toggle_category', category_id=cat.id) }}">
-                    <button type="submit" class="btn-secondary">{{ 'تعطيل' if cat.is_active else 'تفعيل' }}</button>
+                    <button type="submit" class="btn-secondary">
+                        {{ 'تعطيل' if cat.is_active else 'تفعيل' }}
+                    </button>
                 </form>
-                <form method="post" action="{{ url_for('admin_delete_category', category_id=cat.id) }}" onsubmit="return confirm('سيتم حذف الفئة وكل إدخالاتها، هل أنت متأكد؟');">
+
+                <form method="post"
+                      action="{{ url_for('admin_delete_category', category_id=cat.id) }}"
+                      onsubmit="return confirm('سيتم حذف الفئة وكل إدخالاتها، هل أنت متأكد؟');">
                     <button type="submit" class="btn-danger">حذف</button>
                 </form>
             </td>
