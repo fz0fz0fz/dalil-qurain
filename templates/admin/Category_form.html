@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}{{ 'إضافة فئة' if is_new else 'تعديل فئة' }}{% endblock %}
+
 {% block content %}
 <h1>{{ '➕ إضافة فئة جديدة' if is_new else '✏️ تعديل الفئة' }}</h1>
 
@@ -7,18 +8,18 @@
     <div class="form-row two-cols">
         <div class="form-group">
             <label for="group_name">اسم المجموعة</label>
-            <input type="text" name="group_name" id="group_name" value="{{ category.group_name or '' }}">
+            <input type="text" name="group_name" id="group_name" value="{{ category.group_name or '' }}" placeholder="مثال: الخدمات العامة">
         </div>
         <div class="form-group">
             <label for="name">اسم الفئة *</label>
-            <input type="text" name="name" id="name" value="{{ category.name or '' }}" required>
+            <input type="text" name="name" id="name" value="{{ category.name or '' }}" required placeholder="مثال: سباك">
         </div>
     </div>
 
     <div class="form-row two-cols">
         <div class="form-group">
             <label for="icon">الأيقونة</label>
-            <input type="text" name="icon" id="icon" value="{{ category.icon or '' }}">
+            <input type="text" name="icon" id="icon" value="{{ category.icon or '' }}" placeholder="مثال: 🔧">
         </div>
         <div class="form-group">
             <label for="display_order">الترتيب</label>
@@ -35,24 +36,53 @@
     </div>
 
     <div class="notice-box">
-        <strong>الفئة ديناميكية:</strong>
-        أي مقدم خدمة يمكنه الإضافة لها من صفحة الإدخال، كما يمكنك إدخال بيانات جاهزة دفعة واحدة من شاشة استيراد الدفعات.
+        <strong>معلومة مهمة:</strong>
+        هذه الفئة ديناميكية بالكامل. يمكن لمقدم الخدمة الإضافة إليها من صفحة الإدخال العامة،
+        ويمكنك أيضًا إدخال بيانات جاهزة أو نصوص طويلة من خلال شاشة
+        <strong>استيراد دفعة</strong>.
+        <br><br>
+        إذا كنت تريد عرض قائمة نصية كاملة كما هي — مثل الجهات الحكومية، المدارس، الجمعيات، أرقام الطوارئ، أو أي نص حر — فاستخدم
+        <strong>استيراد دفعة ← حفظ النص كما هو</strong>.
+        <br>
+        وإذا كنت تريد إدخال أسماء مقدمي خدمات كسجلات مستقلة، فاستخدم
+        <strong>استيراد دفعة ← استيراد كإدخالات منفصلة</strong>.
     </div>
 
     <div class="form-group inline-check">
-        <label><input type="checkbox" name="use_default_fields" value="1"> استخدام الحقول الافتراضية تلقائيًا</label>
+        <label>
+            <input type="checkbox" name="use_default_fields" value="1">
+            استخدام الحقول الافتراضية تلقائيًا
+        </label>
+    </div>
+
+    <div class="notice-box">
+        الحقول الافتراضية تشمل عادة:
+        الاسم، رقم الجوال، الوصف أو نوع الخدمة، الموقع أو الحي، رابط الخرائط، الأسعار، أوقات العمل، ورابط الخدمة.
+        <br>
+        إذا لم تكن بحاجة لتخصيص الحقول، يمكنك تفعيل الخيار أعلاه وترك تعريف الحقول كما هو.
     </div>
 
     <div class="form-group">
         <label for="field_schema_text">تعريف الحقول</label>
-        <textarea name="field_schema_text" id="field_schema_text" rows="16">{{ schema_text }}</textarea>
+        <textarea name="field_schema_text" id="field_schema_text" rows="16" placeholder='[
+  {
+    "key": "name",
+    "label": "الاسم",
+    "type": "text",
+    "required": true
+  }
+]'>{{ schema_text }}</textarea>
     </div>
 
     <div class="hero-actions">
         <button type="submit" class="btn-primary">حفظ الفئة</button>
+
         {% if not is_new and category.id %}
-            <a href="{{ url_for('admin_bulk_import_category', category_id=category.id) }}" class="btn-secondary">استيراد دفعة</a>
+            <a href="{{ url_for('admin_bulk_import_category', category_id=category.id) }}" class="btn-secondary">
+                استيراد دفعة
+            </a>
         {% endif %}
+
         <a href="{{ url_for('admin_categories') }}" class="btn-secondary">إلغاء</a>
     </div>
 </form>
