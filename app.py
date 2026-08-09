@@ -483,6 +483,36 @@ def register_routes(app):
             now=datetime.utcnow(),
         )
 
+    @app.route("/category/<int:category_id>")
+    def category_detail(category_id):
+        category = Category.query.filter_by(id=category_id, is_active=True).first_or_404()
+
+        query_text = request.args.get("q", "").strip()
+        location = request.args.get("location", "").strip()
+
+        if category.kind == "static":
+            listings = []
+        else:
+            listings = (
+                category.listings.filter_by(is_visible=True)
+                .order_by(Listing.updated_at.desc(), Listing.created_at.desc())
+                .all()
+            )
+            listings = [
+                listing
+                for listing in listings
+                if listing_matches(listing, query_text, location)
+            ]
+
+        return render_template(
+            "category_detail.html",
+            category=category,
+            listings=listings,
+            selected_location=location,
+            search_query=query_text,
+            now=datetime.utcnow(),
+        )
+
     @app.route("/ai")
     def ai_page():
         items = build_public_items(include_empty=True)
