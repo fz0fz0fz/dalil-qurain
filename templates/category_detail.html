@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}{{ category.icon }} {{ category.name }} - دليل خدمات القرين{% endblock %}
+
+{% block content %}
+
+<section class="hero-card">
+    <div>
+        <h1>{{ category.icon }} {{ category.name }}</h1>
+        <p class="lead">
+            صفحة خاصة بعرض تفاصيل خدمة {{ category.name }}
+            {% if category.group_name %}
+                ضمن قسم {{ category.group_name }}
+            {% endif %}
+            بشكل مرتب وسهل التصفح.
+        </p>
+        <p class="updated-note">آخر تحديث: {{ now.strftime('%Y-%m-%d %H:%M') }}</p>
+    </div>
+
+    <div class="hero-actions">
+        <a href="{{ url_for('index') }}" class="btn-secondary">رجوع للدليل</a>
+        <a href="{{ url_for('submit') }}" class="btn-primary">إضافة بيانات مقدم خدمة</a>
+    </div>
+</section>
+
+<section class="filter-card">
+    <h2>🔎 تصفية داخل الخدمة</h2>
+    <form method="get" class="filters-grid">
+        <div class="form-group">
+            <label for="q">بحث بالاسم أو الوصف أو الرقم</label>
+            <input
+                type="text"
+                name="q"
+                id="q"
+                value="{{ search_query or '' }}"
+                placeholder="مثال: أبو ناهد أو 055..."
+            >
+        </div>
+
+        <div class="form-group">
+            <label for="location">الموقع</label>
+            <select name="location" id="location">
+                <option value="">كل المواقع</option>
+                <option value="القرين" {% if selected_location == 'القرين' %}selected{% endif %}>القرين</option>
+                <option value="الدليمية" {% if selected_location == 'الدليمية' %}selected{% endif %}>الدليمية</option>
+            </select>
+        </div>
+
+        <div class="filter-actions">
+            <button type="submit" class="btn-primary">تطبيق</button>
+            <a href="{{ url_for('category_detail', category_id=category.id) }}" class="btn-secondary">إعادة ضبط</a>
+        </div>
+    </form>
+</section>
+
+<section class="category-block" id="cat-{{ category.id }}">
+    <div class="category-head">
+        <h2>{{ category.display_order }} - {{ category.icon }} {{ category.name }}</h2>
+        <span class="badge {{ 'badge-static' if category.kind == 'static' else 'badge-dynamic' }}">
+            {{ 'محتوى جاهز' if category.kind == 'static' else 'مقدمو خدمة' }}
+        </span>
+    </div>
+
+    {% if category.group_name %}
+        <p class="updated-note">القسم الرئيسي: {{ category.group_name }}</p>
+    {% endif %}
+
+    {% if category.static_content %}
+        <div class="static-block" style="white-space: pre-line;">
+            {{ category.static_content }}
+        </div>
+    {% endif %}
+
+    {% if category.kind == 'static' %}
+        {% if not category.static_content %}
+            <div class="empty-state">
+                <h3>لا يوجد محتوى حالياً</h3>
+                <p>لم تتم إضافة بيانات لهذه الخدمة بعد.</p>
+            </div>
+        {% endif %}
+    {% else %}
+        {% if listings %}
+            <div class="listing-grid">
+                {% for listing in listings %}
+                    <article class="listing-card">
+                        <h3>{{ listing.get('name') or 'مقدم خدمة' }}</h3>
+
+                        <div class="listing-meta">
+                            {% if listing.phone %}
+                                <a href="tel:{{ listing.phone }}">📞 {{ listing.phone }}</a>
+                                <a
+                                    href="https://wa.me/{{ listing.phone|replace('+','')|replace(' ','')|replace('-','') }}"
+                                    target="_blank"
+                                    rel="noopener"
+                                >💬 واتساب</a>
+                            {% endif %}
+
+                            {% if listing.get('location') %}
+                                <span>📍 {{ listing.get('location') }}</span>
+                            {% endif %}
+                        </div>
+
+                        {% if listing.get('service_description') %}
+                            <p style="white-space: pre-line;">
+                                {{ listing.get('service_description') }}
+                            </p>
+                        {% endif %}
+
+                        {% if listing.get('price') or listing.get('working_hours') %}
+                            <div class="listing-fields">
+                                {% if listing.get('price') %}
+                                    <span>💵 الأسعار: {{ listing.get('price') }}</span>
+                                {% endif %}
+
+                                {% if listing.get('working_hours') %}
+                                    <span style="white-space: pre-line;">🕒 أوقات العمل: {{ listing.get('working_hours') }}</span>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+
+                        {% if listing.get('maps_url') or listing.get('social_url') %}
+                            <div class="listing-links">
+                                {% if listing.get('maps_url') %}
+                                    <a href="{{ listing.get('maps_url') }}" target="_blank" rel="noopener">🗺️ خرائط</a>
+                                {% endif %}
+
+                                {% if listing.get('social_url') %}
+                                    <a href="{{ listing.get('social_url') }}" target="_blank" rel="noopener">🔗 رابط الخدمة</a>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+
+                        <small class="updated-note">
+                            آخر تحديث:
+                            {{ (listing.updated_at or listing.created_at).strftime('%Y-%m-%d %H:%M') }}
+                        </small>
+                    </article>
+                {% endfor %}
+            </div>
+        {% elif not category.static_content %}
+            <div class="empty-state">
+                <h3>لا توجد نتائج حالياً</h3>
+                <p>لا توجد بيانات ظاهرة داخل هذه الخدمة حالياً، أو أن نتائج التصفية لم تُرجع شيئًا.</p>
+            </div>
+        {% endif %}
+    {% endif %}
+</section>
+
+<section class="hero-card compact">
+    <div>
+        <h2>هل لديك بيانات لهذه الخدمة؟</h2>
+        <p class="lead">يمكنك إرسال بياناتك ليتم عرضها بعد المراجعة داخل الدليل.</p>
+    </div>
+    <div class="hero-actions">
+        <a href="{{ url_for('submit') }}" class="btn-primary">إضافة بياناتي</a>
+        <a href="{{ url_for('index') }}" class="btn-secondary">العودة للدليل</a>
+    </div>
+</section>
+
+{% endblock %}
