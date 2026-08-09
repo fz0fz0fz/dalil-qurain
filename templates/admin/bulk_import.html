@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}استيراد دفعة{% endblock %}
+{% block content %}
+<h1>📥 استيراد دفعة إلى فئة: {{ category.icon }} {{ category.name }}</h1>
+
+<div class="notice-box">
+    الصق القائمة الجاهزة كما هي. النظام يحاول قراءة <strong>الاسم</strong> و<strong>رقم الجوال</strong> تلقائيًا، ويستوعب أيضًا رابط الخرائط أو إنستغرام/تيك توك وأوقات العمل إذا كانت موجودة داخل النص. إذا كان الموقع غير موجود داخل النص يمكنك اختياره مرة واحدة ليُطبَّق على كل العناصر المستوردة.
+</div>
+
+<form method="post" class="card-form">
+    <div class="form-group">
+        <label for="fallback_location">الموقع الافتراضي للعناصر التي لا تحتوي موقعًا</label>
+        <select name="fallback_location" id="fallback_location">
+            <option value="">بدون موقع افتراضي</option>
+            <option value="القرين">القرين</option>
+            <option value="الدليمية">الدليمية</option>
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="bulk_text">النص المراد استيراده</label>
+        <textarea name="bulk_text" id="bulk_text" rows="20" placeholder="مثال:
+🎨 أبو ناهد
+📞 0530626942
+
+🎨 أرشد
+📞 0578272850
+
+🎨 أضفر
+📞 0559252429">{{ bulk_text }}</textarea>
+    </div>
+
+    <div class="hero-actions">
+        <button type="submit" class="btn-primary">استيراد الآن</button>
+        <a href="{{ url_for('admin_categories') }}" class="btn-secondary">رجوع للفئات</a>
+    </div>
+</form>
+{% endblock %}
