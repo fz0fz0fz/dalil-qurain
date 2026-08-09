@@ -1,12 +1,13 @@
 {% extends "base.html" %}
 {% block title %}استيراد دفعة{% endblock %}
+
 {% block content %}
 <h1>📥 استيراد دفعة إلى فئة: {{ category.icon }} {{ category.name }}</h1>
 
 <div class="notice-box">
     لديك وضعان للاستيراد:
-    <br>1) <strong>حفظ النص كما هو</strong>: مناسب للقوائم الطويلة أو المحتوى الذي يحتوي تفاصيل حرة مثل أرقام الحسابات والتعليمات، وسيظهر كما لصقته تمامًا داخل الفئة ليقرأه الذكاء الاصطناعي.
-    <br>2) <strong>استيراد كإدخالات منفصلة</strong>: مناسب لقوائم الأسماء والأرقام فقط مثل السباكين والدهانين.
+    <br>1) <strong>حفظ النص كما هو</strong>: مناسب للقوائم الطويلة أو المحتوى الحر الذي يحتوي تفاصيل كاملة مثل أرقام الحسابات، الآيبان، العناوين، التعليمات، وأي نص تريد أن يقرأه الذكاء الاصطناعي كما هو.
+    <br>2) <strong>استيراد كإدخالات منفصلة</strong>: مناسب لقوائم مقدمي الخدمات مثل السباكين والدهانين والكهربائيين بحيث يتم تحويل كل عنصر إلى سجل مستقل داخل الفئة.
 </div>
 
 <form method="post" class="card-form">
@@ -21,7 +22,11 @@
 
     <div class="form-group">
         <label for="bulk_text">النص المراد استيراده</label>
-        <textarea name="bulk_text" id="bulk_text" rows="20" placeholder="مثال للنص الحر:
+        <textarea
+            name="bulk_text"
+            id="bulk_text"
+            rows="20"
+            placeholder="مثال للنص الحر:
 ━━━━━━━━━━━━━━━
 🏛️ دليلك للخدمات والدوائر الحكومية في القرين:
 ━━━━━━━━━━━━━━━
@@ -29,17 +34,25 @@
 🏢 أمارة مركز القرين:
 📞 0162332212
 
+🏥 مركز صحي القرين:
+📞 0162332232
+
 مثال للإدخالات المنفصلة:
 🎨 أبو ناهد
 📞 0530626942
 
 🎨 أرشد
-📞 0578272850">{{ bulk_text }}</textarea>
+📞 0578272850"
+        >{{ bulk_text or '' }}</textarea>
     </div>
 
     <div class="hero-actions">
-        <button type="submit" name="import_mode" value="raw" class="btn-primary">حفظ النص كما هو</button>
-        <button type="submit" name="import_mode" value="entries" class="btn-secondary">استيراد كإدخالات منفصلة</button>
+        <button type="submit" name="import_mode" value="raw" class="btn-primary">
+            حفظ النص كما هو
+        </button>
+        <button type="submit" name="import_mode" value="entries" class="btn-secondary">
+            استيراد كإدخالات منفصلة
+        </button>
         <a href="{{ url_for('admin_categories') }}" class="btn-secondary">رجوع للفئات</a>
     </div>
 </form>
