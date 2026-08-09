@@ -50,10 +50,16 @@ def ensure_database_structure():
     if "listings" in tables:
         listing_columns = {col["name"] for col in inspector.get_columns("listings")}
         if "is_visible" not in listing_columns:
-            db.session.execute(text("ALTER TABLE listings ADD COLUMN is_visible BOOLEAN DEFAULT TRUE"))
+            db.session.execute(
+                text("ALTER TABLE listings ADD COLUMN is_visible BOOLEAN DEFAULT TRUE")
+            )
         if "updated_at" not in listing_columns:
-            db.session.execute(text("ALTER TABLE listings ADD COLUMN updated_at DATETIME"))
-            db.session.execute(text("UPDATE listings SET updated_at = created_at WHERE updated_at IS NULL"))
+            db.session.execute(
+                text("ALTER TABLE listings ADD COLUMN updated_at DATETIME")
+            )
+            db.session.execute(
+                text("UPDATE listings SET updated_at = created_at WHERE updated_at IS NULL")
+            )
 
     db.session.commit()
 
@@ -86,7 +92,9 @@ def normalize_phone(phone):
 
 
 def category_matches(cat, query_text):
-    haystack = " ".join([cat.group_name or "", cat.name or "", cat.static_content or ""]).lower()
+    haystack = " ".join(
+        [cat.group_name or "", cat.name or "", cat.static_content or ""]
+    ).lower()
     return query_text in haystack
 
 
@@ -104,6 +112,7 @@ def listing_matches(listing, query_text="", location=""):
 
 def validate_field(field, value):
     label = field.get("label", field.get("key", "الحقل"))
+
     if field.get("required") and not value:
         return f'الحقل "{label}" مطلوب.'
 
@@ -132,6 +141,7 @@ def validate_field(field, value):
 def collect_listing_data(category, form, prefix):
     entry_data = {}
     errors = []
+
     for field in category.get_fields():
         key = field["key"]
         raw_value = form.get(f"{prefix}{key}", "")
@@ -140,11 +150,61 @@ def collect_listing_data(category, form, prefix):
         if error:
             errors.append(error)
         entry_data[key] = value
+
     return entry_data, errors
 
 
 def pretty_schema_text(category):
-    return json.dumps(category.get_fields() or DEFAULT_DYNAMIC_FIELDS, ensure_ascii=False, indent=2)
+    try:
+        fields = category.get_fields()
+
+        if not isinstance(fields, list) or not fields:
+            fields = DEFAULT_DYNAMIC_FIELDS
+
+        cleaned = []
+        allowed_types = {"text", "tel", "textarea", "url", "select"}
+
+        for field in fields:
+            if not isinstance(field, dict):
+                continue
+
+            key = str(field.get("key", "")).strip()
+            label = str(field.get("label", "")).strip()
+            field_type = str(field.get("type", "text")).strip() or "text"
+
+            if not key or not label:
+                continue
+
+            if field_type not in allowed_types:
+                field_type = "text"
+
+            item = {
+                "key": key,
+                "label": label,
+                "type": field_type,
+                "required": bool(field.get("required", False)),
+            }
+
+            if field.get("maxlength"):
+                try:
+                    item["maxlength"] = int(field["maxlength"])
+                except Exception:
+                    pass
+
+            if field_type == "select":
+                options = field.get("options") or []
+                if isinstance(options, list) and options:
+                    item["options"] = options
+
+            cleaned.append(item)
+
+        if not cleaned:
+            cleaned = DEFAULT_DYNAMIC_FIELDS
+
+        return json.dumps(cleaned, ensure_ascii=False, indent=2)
+
+    except Exception:
+        return json.dumps(DEFAULT_DYNAMIC_FIELDS, ensure_ascii=False, indent=2)
 
 
 def parse_field_schema(field_schema_text, use_default_fields=False):
@@ -188,11 +248,15 @@ def parse_field_schema(field_schema_text, use_default_fields=False):
         }
 
         if item.get("maxlength"):
-            cleaned_item["maxlength"] = int(item["maxlength"])
+            try:
+                cleaned_item["maxlength"] = int(item["maxlength"])
+            except Exception:
+                errors.append(f"قيمة maxlength في العنصر رقم {idx} غير صحيحة.")
+                continue
 
         if field_type == "select":
             options = item.get("options") or []
-            if not options:
+            if not options or not isinstance(options, list):
                 errors.append(f"الحقل {label} من نوع select ويحتاج options.")
                 continue
             cleaned_item["options"] = options
@@ -201,6 +265,7 @@ def parse_field_schema(field_schema_text, use_default_fields=False):
 
     if errors:
         return None, errors
+
     return cleaned, []
 
 
@@ -239,9 +304,15 @@ def parse_bulk_listings_text(raw_text):
             if urls:
                 for url in urls:
                     lowered = url.lower()
-                    if any(host in lowered for host in ["maps.app", "google.com/maps", "goo.gl/maps"]):
+                    if any(
+                        host in lowered
+                        for host in ["maps.app", "google.com/maps", "goo.gl/maps"]
+                    ):
                         maps_url = maps_url or url
-                    elif any(host in lowered for host in ["instagram", "instagr.am", "tiktok"]):
+                    elif any(
+                        host in lowered
+                        for host in ["instagram", "instagr.am", "tiktok"]
+                    ):
                         social_url = social_url or url
                 if line == urls[0]:
                     continue
@@ -257,7 +328,9 @@ def parse_bulk_listings_text(raw_text):
                 location = "الدليمية"
 
             if any(token in line for token in ["🕒", "الدوام", "ساعات", "24 ساعة", "الجمعة"]):
-                working_hours = (working_hours + "\n" + line).strip() if working_hours else line
+                working_hours = (
+                    (working_hours + "\n" + line).strip() if working_hours else line
+                )
                 continue
 
             if any(token in line for token in ["💵", "السعر", "الأسعار"]):
@@ -455,6 +528,8 @@ def register_routes(app):
     @app.route("/admin/login", methods=["GET", "POST"])
     def admin_login():
         locked, locked_until = admin_is_locked(app)
+        max_attempts = app.config.get("ADMIN_LOGIN_MAX_ATTEMPTS", 5)
+        lock_minutes = app.config.get("ADMIN_LOGIN_LOCK_MINUTES", 15)
 
         if request.method == "POST":
             if locked:
@@ -476,13 +551,20 @@ def register_routes(app):
             attempts = session.get("admin_login_attempts", 0) + 1
             session["admin_login_attempts"] = attempts
 
-            if attempts >= app.config["ADMIN_LOGIN_MAX_ATTEMPTS"]:
-                lock_minutes = app.config["ADMIN_LOGIN_LOCK_MINUTES"]
-                session["admin_locked_until"] = (datetime.utcnow() + timedelta(minutes=lock_minutes)).isoformat()
-                flash(f"تم إيقاف المحاولات لمدة {lock_minutes} دقيقة بسبب تكرار كلمة المرور الخاطئة.", "error")
+            if attempts >= max_attempts:
+                session["admin_locked_until"] = (
+                    datetime.utcnow() + timedelta(minutes=lock_minutes)
+                ).isoformat()
+                flash(
+                    f"تم إيقاف المحاولات لمدة {lock_minutes} دقيقة بسبب تكرار كلمة المرور الخاطئة.",
+                    "error",
+                )
             else:
-                remaining = app.config["ADMIN_LOGIN_MAX_ATTEMPTS"] - attempts
-                flash(f"اسم المستخدم أو كلمة المرور غير صحيحة. المحاولات المتبقية: {remaining}", "error")
+                remaining = max_attempts - attempts
+                flash(
+                    f"اسم المستخدم أو كلمة المرور غير صحيحة. المحاولات المتبقية: {remaining}",
+                    "error",
+                )
 
         return render_template("admin/login.html", locked_until=locked_until)
 
@@ -583,12 +665,16 @@ def register_routes(app):
     @app.route("/admin/categories/new", methods=["GET", "POST"])
     @admin_required
     def admin_new_category():
-        category = Category(
-            kind="dynamic",
-            is_active=True,
-            field_schema=default_dynamic_fields(),
-            static_content="",
-        )
+        category = Category()
+        category.kind = "dynamic"
+        category.is_active = True
+        category.group_name = ""
+        category.name = ""
+        category.icon = ""
+        category.display_order = 0
+        category.field_schema = default_dynamic_fields()
+        category.static_content = ""
+
         if request.method == "POST":
             return save_category_form(category, is_new=True)
 
@@ -603,6 +689,7 @@ def register_routes(app):
     @admin_required
     def admin_edit_category(category_id):
         category = Category.query.get_or_404(category_id)
+
         if request.method == "POST":
             return save_category_form(category, is_new=False)
 
@@ -745,9 +832,10 @@ def register_routes(app):
         category.is_active = is_active
         category.field_schema = field_schema
 
+        if category.static_content is None:
+            category.static_content = ""
+
         if is_new:
-            if category.static_content is None:
-                category.static_content = ""
             db.session.add(category)
 
         db.session.commit()
