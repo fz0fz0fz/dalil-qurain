@@ -4,17 +4,14 @@
 
 <section class="hero-card">
     <div>
-<section class="hero-card">
-    <div>
         <h1>📌 دليل خدمات القرين والدليمية</h1>
-        <p class="lead">هذه الصفحة تعرض الخدمات والبيانات المحدثة بشكل مرتب وسهل للزوار ومقدمي الخدمات.</p>
+        <p class="lead">هذه الصفحة تعرض الخدمات بشكل مختصر ومنظم لتسهيل الوصول السريع إلى كل خدمة.</p>
         <p class="updated-note">آخر تحديث: {{ now.strftime('%Y-%m-%d %H:%M') }}</p>
     </div>
     <div class="hero-actions">
         <a href="{{ url_for('submit') }}" class="btn-primary">إضافة بيانات مقدم خدمة</a>
     </div>
 </section>
-
 
 <section class="filter-card">
     <h2>🔎 البحث والتصفية</h2>
@@ -23,6 +20,7 @@
             <label for="q">بحث بالاسم أو الخدمة أو الرقم</label>
             <input type="text" name="q" id="q" value="{{ search_query }}" placeholder="مثال: سباك أو 055...">
         </div>
+
         <div class="form-group">
             <label for="category_id">الفئة</label>
             <select name="category_id" id="category_id">
@@ -34,6 +32,7 @@
                 {% endfor %}
             </select>
         </div>
+
         <div class="form-group">
             <label for="location">الموقع</label>
             <select name="location" id="location">
@@ -42,6 +41,7 @@
                 <option value="الدليمية" {% if selected_location == 'الدليمية' %}selected{% endif %}>الدليمية</option>
             </select>
         </div>
+
         <div class="filter-actions">
             <button type="submit" class="btn-primary">تطبيق</button>
             <a href="{{ url_for('index') }}" class="btn-secondary">إعادة ضبط</a>
@@ -49,83 +49,73 @@
     </form>
 </section>
 
-{% set last_group = "" %}
-{% for item in items %}
-    {% set cat = item.category %}
-    {% if cat.group_name and cat.group_name != last_group %}
-        <h2 class="group-title">{{ cat.group_name }}</h2>
-        {% set last_group = cat.group_name %}
-    {% endif %}
+{% if items %}
+    {% set ns = namespace(current_group='', opened=false) %}
 
-    <section class="category-block" id="cat-{{ cat.id }}">
-        <div class="category-head">
-            <h3>{{ cat.display_order }} - {{ cat.icon }} {{ cat.name }}</h3>
-            <span class="badge {{ 'badge-static' if cat.kind == 'static' else 'badge-dynamic' }}">
-                {{ 'محتوى ثابت' if cat.kind == 'static' else 'إدخالات مقدمي خدمة' }}
-            </span>
-        </div>
+    {% for item in items %}
+        {% set cat = item.category %}
+        {% set group_name = cat.group_name or 'خدمات متنوعة' %}
+        {% set listings_count = item.listings|length %}
+        {% set has_static = cat.static_content and cat.static_content.strip() %}
 
-        {% if cat.kind == 'static' %}
-            <div class="static-block" style="white-space: pre-line;">{{ cat.static_content or 'لا يوجد محتوى حالياً.' }}</div>
-        {% else %}
-            {% if cat.static_content %}
-                <div class="static-block" style="white-space: pre-line;">{{ cat.static_content }}</div>
+        {% if group_name != ns.current_group %}
+            {% if ns.opened %}
+                    </div>
+                </section>
             {% endif %}
 
-            {% if item.listings %}
-                <div class="listing-grid">
-                    {% for listing in item.listings %}
-                        <article class="listing-card">
-                            <h4>{{ listing.get('name') or 'مقدم خدمة' }}</h4>
-
-                            <div class="listing-meta">
-                                {% if listing.phone %}
-                                    <a href="tel:{{ listing.phone }}">📞 {{ listing.phone }}</a>
-                                    <a href="https://wa.me/{{ listing.phone|replace('+','')|replace(' ','')|replace('-','') }}" target="_blank" rel="noopener">💬 واتساب</a>
-                                {% endif %}
-                                {% if listing.get('location') %}
-                                    <span>📍 {{ listing.get('location') }}</span>
-                                {% endif %}
-                            </div>
-
-                            {% if listing.get('service_description') %}
-                                <p style="white-space: pre-line;">{{ listing.get('service_description') }}</p>
-                            {% endif %}
-
-                            <div class="listing-fields">
-                                {% if listing.get('price') %}
-                                    <span>💵 الأسعار: {{ listing.get('price') }}</span>
-                                {% endif %}
-                                {% if listing.get('working_hours') %}
-                                    <span style="white-space: pre-line;">🕒 أوقات العمل: {{ listing.get('working_hours') }}</span>
-                                {% endif %}
-                            </div>
-
-                            <div class="listing-links">
-                                {% if listing.get('maps_url') %}
-                                    <a href="{{ listing.get('maps_url') }}" target="_blank" rel="noopener">🗺️ خرائط</a>
-                                {% endif %}
-                                {% if listing.get('social_url') %}
-                                    <a href="{{ listing.get('social_url') }}" target="_blank" rel="noopener">📱 صفحة الخدمة</a>
-                                {% endif %}
-                            </div>
-
-                            <small class="updated-note">
-                                آخر تحديث: {{ (listing.updated_at or listing.created_at).strftime('%Y-%m-%d %H:%M') }}
-                            </small>
-                        </article>
-                    {% endfor %}
+            <section class="service-group-block">
+                <div class="group-header-row">
+                    <h2 class="group-title">{{ group_name }}</h2>
                 </div>
-            {% elif not cat.static_content %}
-                <p class="empty-note">لا توجد بيانات ظاهرة حالياً في هذه الفئة.</p>
-            {% endif %}
+                <div class="services-grid">
+            {% set ns.current_group = group_name %}
+            {% set ns.opened = true %}
         {% endif %}
-    </section>
+
+        <a href="{{ url_for('category_detail', category_id=cat.id) }}" class="service-card-link">
+            <article class="service-card-compact" id="cat-{{ cat.id }}">
+                <div class="service-card-top">
+                    <span class="service-order">{{ cat.display_order }}</span>
+                    <span class="service-icon">{{ cat.icon or '📁' }}</span>
+                </div>
+
+                <h3 class="service-title">{{ cat.name }}</h3>
+
+                <div class="service-card-meta">
+                    {% if has_static and listings_count %}
+                        <span class="mini-badge">نص + إدخالات</span>
+                    {% elif has_static %}
+                        <span class="mini-badge">محتوى جاهز</span>
+                    {% elif listings_count %}
+                        <span class="mini-badge">مقدمو خدمة</span>
+                    {% else %}
+                        <span class="mini-badge muted">لا توجد بيانات</span>
+                    {% endif %}
+                </div>
+
+                <div class="service-card-footer">
+                    {% if listings_count %}
+                        <span>{{ listings_count }} إدخال</span>
+                    {% elif has_static %}
+                        <span>عرض التفاصيل</span>
+                    {% else %}
+                        <span>فتح الخدمة</span>
+                    {% endif %}
+                </div>
+            </article>
+        </a>
+    {% endfor %}
+
+    {% if ns.opened %}
+            </div>
+        </section>
+    {% endif %}
 {% else %}
     <div class="empty-state">
         <h3>لا توجد نتائج مطابقة</h3>
         <p>جرّب تغيير كلمة البحث أو إزالة بعض التصفية.</p>
     </div>
-{% endfor %}
+{% endif %}
 
 {% endblock %}
