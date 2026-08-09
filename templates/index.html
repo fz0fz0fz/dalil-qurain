@@ -26,7 +26,9 @@
             <select name="category_id" id="category_id">
                 <option value="">كل الفئات</option>
                 {% for cat in categories %}
-                    <option value="{{ cat.id }}" {% if selected_category == cat.id %}selected{% endif %}>{{ cat.display_order }} - {{ cat.icon }} {{ cat.name }}</option>
+                    <option value="{{ cat.id }}" {% if selected_category == cat.id %}selected{% endif %}>
+                        {{ cat.display_order }} - {{ cat.icon }} {{ cat.name }}
+                    </option>
                 {% endfor %}
             </select>
         </div>
@@ -56,17 +58,24 @@
     <section class="category-block" id="cat-{{ cat.id }}">
         <div class="category-head">
             <h3>{{ cat.display_order }} - {{ cat.icon }} {{ cat.name }}</h3>
-            <span class="badge {{ 'badge-static' if cat.kind == 'static' else 'badge-dynamic' }}">{{ 'محتوى ثابت' if cat.kind == 'static' else 'إدخالات مقدمي خدمة' }}</span>
+            <span class="badge {{ 'badge-static' if cat.kind == 'static' else 'badge-dynamic' }}">
+                {{ 'محتوى ثابت' if cat.kind == 'static' else 'إدخالات مقدمي خدمة' }}
+            </span>
         </div>
 
         {% if cat.kind == 'static' %}
-            <div class="static-block">{{ cat.static_content or 'لا يوجد محتوى حالياً.' }}</div>
+            <div class="static-block" style="white-space: pre-line;">{{ cat.static_content or 'لا يوجد محتوى حالياً.' }}</div>
         {% else %}
+            {% if cat.static_content %}
+                <div class="static-block" style="white-space: pre-line;">{{ cat.static_content }}</div>
+            {% endif %}
+
             {% if item.listings %}
                 <div class="listing-grid">
                     {% for listing in item.listings %}
                         <article class="listing-card">
                             <h4>{{ listing.get('name') or 'مقدم خدمة' }}</h4>
+
                             <div class="listing-meta">
                                 {% if listing.phone %}
                                     <a href="tel:{{ listing.phone }}">📞 {{ listing.phone }}</a>
@@ -76,13 +85,20 @@
                                     <span>📍 {{ listing.get('location') }}</span>
                                 {% endif %}
                             </div>
+
                             {% if listing.get('service_description') %}
-                                <p>{{ listing.get('service_description') }}</p>
+                                <p style="white-space: pre-line;">{{ listing.get('service_description') }}</p>
                             {% endif %}
+
                             <div class="listing-fields">
-                                {% if listing.get('price') %}<span>💵 الأسعار: {{ listing.get('price') }}</span>{% endif %}
-                                {% if listing.get('working_hours') %}<span>🕒 أوقات العمل: {{ listing.get('working_hours') }}</span>{% endif %}
+                                {% if listing.get('price') %}
+                                    <span>💵 الأسعار: {{ listing.get('price') }}</span>
+                                {% endif %}
+                                {% if listing.get('working_hours') %}
+                                    <span style="white-space: pre-line;">🕒 أوقات العمل: {{ listing.get('working_hours') }}</span>
+                                {% endif %}
                             </div>
+
                             <div class="listing-links">
                                 {% if listing.get('maps_url') %}
                                     <a href="{{ listing.get('maps_url') }}" target="_blank" rel="noopener">🗺️ خرائط</a>
@@ -91,11 +107,14 @@
                                     <a href="{{ listing.get('social_url') }}" target="_blank" rel="noopener">📱 صفحة الخدمة</a>
                                 {% endif %}
                             </div>
-                            <small class="updated-note">آخر تحديث: {{ (listing.updated_at or listing.created_at).strftime('%Y-%m-%d %H:%M') }}</small>
+
+                            <small class="updated-note">
+                                آخر تحديث: {{ (listing.updated_at or listing.created_at).strftime('%Y-%m-%d %H:%M') }}
+                            </small>
                         </article>
                     {% endfor %}
                 </div>
-            {% else %}
+            {% elif not cat.static_content %}
                 <p class="empty-note">لا توجد بيانات ظاهرة حالياً في هذه الفئة.</p>
             {% endif %}
         {% endif %}
