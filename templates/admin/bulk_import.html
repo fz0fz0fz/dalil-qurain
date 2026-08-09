@@ -4,7 +4,9 @@
 <h1>📥 استيراد دفعة إلى فئة: {{ category.icon }} {{ category.name }}</h1>
 
 <div class="notice-box">
-    الصق القائمة الجاهزة كما هي. النظام يحاول قراءة <strong>الاسم</strong> و<strong>رقم الجوال</strong> تلقائيًا، ويستوعب أيضًا رابط الخرائط أو إنستغرام/تيك توك وأوقات العمل إذا كانت موجودة داخل النص. إذا كان الموقع غير موجود داخل النص يمكنك اختياره مرة واحدة ليُطبَّق على كل العناصر المستوردة.
+    لديك وضعان للاستيراد:
+    <br>1) <strong>حفظ النص كما هو</strong>: مناسب للقوائم الطويلة أو المحتوى الذي يحتوي تفاصيل حرة مثل أرقام الحسابات والتعليمات، وسيظهر كما لصقته تمامًا داخل الفئة ليقرأه الذكاء الاصطناعي.
+    <br>2) <strong>استيراد كإدخالات منفصلة</strong>: مناسب لقوائم الأسماء والأرقام فقط مثل السباكين والدهانين.
 </div>
 
 <form method="post" class="card-form">
@@ -19,19 +21,25 @@
 
     <div class="form-group">
         <label for="bulk_text">النص المراد استيراده</label>
-        <textarea name="bulk_text" id="bulk_text" rows="20" placeholder="مثال:
+        <textarea name="bulk_text" id="bulk_text" rows="20" placeholder="مثال للنص الحر:
+━━━━━━━━━━━━━━━
+🏛️ دليلك للخدمات والدوائر الحكومية في القرين:
+━━━━━━━━━━━━━━━
+
+🏢 أمارة مركز القرين:
+📞 0162332212
+
+مثال للإدخالات المنفصلة:
 🎨 أبو ناهد
 📞 0530626942
 
 🎨 أرشد
-📞 0578272850
-
-🎨 أضفر
-📞 0559252429">{{ bulk_text }}</textarea>
+📞 0578272850">{{ bulk_text }}</textarea>
     </div>
 
     <div class="hero-actions">
-        <button type="submit" class="btn-primary">استيراد الآن</button>
+        <button type="submit" name="import_mode" value="raw" class="btn-primary">حفظ النص كما هو</button>
+        <button type="submit" name="import_mode" value="entries" class="btn-secondary">استيراد كإدخالات منفصلة</button>
         <a href="{{ url_for('admin_categories') }}" class="btn-secondary">رجوع للفئات</a>
     </div>
 </form>
