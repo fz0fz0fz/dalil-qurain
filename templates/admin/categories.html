@@ -6,13 +6,16 @@
     <a href="{{ url_for('admin_new_category') }}" class="btn-primary">إضافة فئة جديدة</a>
 </div>
 
+<div class="notice-box">
+    كل الفئات هنا ديناميكية وقابلة للإضافة من مقدم الخدمة، وبإمكانك أيضًا إدخال بيانات جاهزة دفعة واحدة عن طريق النسخ واللصق من زر <strong>استيراد دفعة</strong>.
+</div>
+
 <table class="admin-table">
     <thead>
         <tr>
             <th>الترتيب</th>
             <th>الفئة</th>
             <th>المجموعة</th>
-            <th>النوع</th>
             <th>الحالة</th>
             <th>الإجراءات</th>
         </tr>
@@ -23,10 +26,10 @@
             <td>{{ cat.display_order }}</td>
             <td>{{ cat.icon }} {{ cat.name }}</td>
             <td>{{ cat.group_name or '-' }}</td>
-            <td>{{ 'ثابتة' if cat.kind == 'static' else 'ديناميكية' }}</td>
             <td>{{ 'مفعلة' if cat.is_active else 'معطلة' }}</td>
             <td class="actions-cell">
                 <a href="{{ url_for('admin_edit_category', category_id=cat.id) }}" class="btn-secondary">تعديل</a>
+                <a href="{{ url_for('admin_bulk_import_category', category_id=cat.id) }}" class="btn-primary">استيراد دفعة</a>
                 <form method="post" action="{{ url_for('admin_toggle_category', category_id=cat.id) }}">
                     <button type="submit" class="btn-secondary">{{ 'تعطيل' if cat.is_active else 'تفعيل' }}</button>
                 </form>
