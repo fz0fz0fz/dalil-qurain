@@ -1,11 +1,10 @@
 import json
+import re
 from datetime import datetime, timedelta
 from functools import wraps
-from urllib.parse import quote
 
 from flask import (
     Flask,
-    abort,
     flash,
     redirect,
     render_template,
@@ -23,6 +22,8 @@ from seed_data import default_dynamic_fields
 
 
 DEFAULT_DYNAMIC_FIELDS = default_dynamic_fields()
+PHONE_RE = re.compile(r"(?:\+?966|0)?\d[\d\s\-]{7,}")
+URL_RE = re.compile(r"https?://\S+")
 
 
 def create_app():
@@ -82,26 +83,6 @@ def normalize_phone(phone):
     if phone.startswith("+"):
         return "+" + digits
     return digits
-
-
-def whatsapp_url(phone):
-    normalized = normalize_phone(phone)
-    if not normalized:
-        return ""
-    if normalized.startswith("0"):
-        normalized = "966" + normalized[1:]
-    if normalized.startswith("+"):
-        normalized = normalized[1:]
-    return f"https://wa.me/{normalized}"
-
-
-def social_platform_label(url):
-    lowered = (url or "").lower()
-    if "tiktok" in lowered:
-        return "تيك توك"
-    if "instagram" in lowered or "instagr.am" in lowered:
-        return "إنستغرام"
-    return "رابط الخدمة"
 
 
 def category_matches(cat, query_text):
@@ -214,6 +195,120 @@ def parse_field_schema(field_schema_text, use_default_fields=False):
     if errors:
         return None, errors
     return cleaned, []
+
+
+def clean_import_line(value):
+    value = (value or "").strip()
+    value = re.sub(r"^[^\w\u0600-\u06FF\d\+]+", "", value, flags=re.UNICODE).strip()
+    return value
+
+
+def parse_bulk_listings_text(raw_text):
+    text = (raw_text or "").replace("\r", "")
+    chunks = [chunk.strip() for chunk in re.split(r"\n\s*\n+", text) if chunk.strip()]
+    entries = []
+
+    for chunk in chunks:
+        lines = [line.strip() for line in chunk.split("\n") if line.strip()]
+        if not lines:
+            continue
+
+        first_non_noise = None
+        phone = ""
+        location = ""
+        maps_url = ""
+        social_url = ""
+        price = ""
+        working_hours = ""
+        description_parts = []
+
+        for line in lines:
+            if set(line) <= set("━-—_*"):
+                continue
+            if "قائمة" in line or line.startswith("آخر تحديث") or line.startswith("🔄"):
+                continue
+
+            urls = URL_RE.findall(line)
+            if urls:
+                for url in urls:
+                    lowered = url.lower()
+                    if any(host in lowered for host in ["maps.app", "google.com/maps", "goo.gl/maps"]):
+                        maps_url = maps_url or url
+                    elif any(host in lowered for host in ["instagram", "instagr.am", "tiktok"]):
+                        social_url = social_url or url
+                if line == urls[0]:
+                    continue
+
+            phone_match = PHONE_RE.search(line.replace("📞", " "))
+            if phone_match:
+                phone = phone or phone_match.group(0).strip()
+                continue
+
+            if "القرين" in line and not location:
+                location = "القرين"
+            elif "الدليمية" in line and not location:
+                location = "الدليمية"
+
+            if any(token in line for token in ["🕒", "الدوام", "ساعات", "24 ساعة", "الجمعة"]):
+                working_hours = (working_hours + "\n" + line).strip() if working_hours else line
+                continue
+
+            if any(token in line for token in ["💵", "السعر", "الأسعار"]):
+                price = clean_import_line(line)
+                continue
+
+            cleaned = clean_import_line(line)
+            if not cleaned:
+                continue
+            if not first_non_noise:
+                first_non_noise = cleaned
+            else:
+                description_parts.append(cleaned)
+
+        if not first_non_noise or not phone:
+            continue
+
+        entries.append(
+            {
+                "name": first_non_noise,
+                "phone": phone,
+                "service_description": "\n".join(description_parts)[:200],
+                "location": location,
+                "maps_url": maps_url,
+                "price": price,
+                "working_hours": working_hours,
+                "social_url": social_url,
+            }
+        )
+
+    return entries
+
+
+def upsert_listing_for_category(category, entry_data):
+    normalized_phone = normalize_phone(entry_data.get("phone", "").strip())
+    existing_listing = None
+    if normalized_phone:
+        existing_listing = (
+            Listing.query.filter_by(category_id=category.id)
+            .filter(Listing.phone.in_([entry_data.get("phone", "").strip(), normalized_phone]))
+            .first()
+        )
+
+    if existing_listing:
+        existing_listing.data = entry_data
+        existing_listing.phone = entry_data.get("phone", "").strip()
+        existing_listing.is_visible = True
+        existing_listing.updated_at = datetime.utcnow()
+        return existing_listing, "updated"
+
+    listing = Listing(
+        category_id=category.id,
+        data=entry_data,
+        phone=entry_data.get("phone", "").strip(),
+        is_visible=True,
+    )
+    db.session.add(listing)
+    return listing, "created"
 
 
 def build_public_items(query_text="", location="", category_id=None, include_empty=True):
@@ -334,21 +429,16 @@ def register_routes(app):
                     flash(error, "error")
                 return redirect(url_for("submit"))
 
-            listing = Listing(
-                category_id=category.id,
-                data=entry_data,
-                phone=entry_data.get("phone", "").strip(),
-                is_visible=True,
-            )
-            db.session.add(listing)
+            _listing, action = upsert_listing_for_category(category, entry_data)
             db.session.commit()
-            return redirect(url_for("submit_success"))
+            return redirect(url_for("submit_success", action=action))
 
         return render_template("submit.html", categories=dynamic_categories)
 
     @app.route("/submit/success")
     def submit_success():
-        return render_template("submit_success.html")
+        action = request.args.get("action", "created")
+        return render_template("submit_success.html", action=action)
 
     @app.route("/admin/login", methods=["GET", "POST"])
     def admin_login():
@@ -499,14 +589,64 @@ def register_routes(app):
             is_new=False,
         )
 
+    @app.route("/admin/categories/<int:category_id>/bulk-import", methods=["GET", "POST"])
+    @admin_required
+    def admin_bulk_import_category(category_id):
+        category = Category.query.get_or_404(category_id)
+        if request.method == "POST":
+            raw_text = request.form.get("bulk_text", "")
+            fallback_location = request.form.get("fallback_location", "").strip()
+            entries = parse_bulk_listings_text(raw_text)
+
+            if not entries:
+                flash("لم يتم التعرف على أي إدخالات قابلة للاستيراد. تأكد من وجود اسم ورقم جوال لكل عنصر.", "error")
+                return render_template("admin/bulk_import.html", category=category, bulk_text=raw_text)
+
+            created_count = 0
+            updated_count = 0
+            skipped = []
+
+            for entry in entries:
+                if fallback_location and not entry.get("location"):
+                    entry["location"] = fallback_location
+
+                normalized_entry = {}
+                errors = []
+                for field in category.get_fields():
+                    key = field["key"]
+                    value = (entry.get(key, "") or "").strip()
+                    error = validate_field(field, value)
+                    if error:
+                        errors.append(error)
+                    normalized_entry[key] = value
+
+                if errors:
+                    skipped.append(f"{entry.get('name', 'بدون اسم')}: {' | '.join(errors)}")
+                    continue
+
+                _listing, action = upsert_listing_for_category(category, normalized_entry)
+                if action == "created":
+                    created_count += 1
+                else:
+                    updated_count += 1
+
+            db.session.commit()
+            if created_count or updated_count:
+                flash(f"تم الاستيراد بنجاح. جديد: {created_count} | محدث: {updated_count}", "success")
+            if skipped:
+                flash("بعض الأسطر لم تُستورد: " + " || ".join(skipped[:5]), "error")
+            return redirect(url_for("admin_categories"))
+
+        return render_template("admin/bulk_import.html", category=category, bulk_text="")
+
     def save_category_form(category, is_new=False):
         group_name = request.form.get("group_name", "").strip()
         name = request.form.get("name", "").strip()
         icon = request.form.get("icon", "").strip()
-        kind = request.form.get("kind", "dynamic").strip()
+        kind = "dynamic"
         display_order = request.form.get("display_order", type=int) or 0
         is_active = request.form.get("is_active") == "1"
-        static_content = request.form.get("static_content", "").strip()
+        static_content = ""
         field_schema_text = request.form.get("field_schema_text", "")
         use_default_fields = request.form.get("use_default_fields") == "1"
 
@@ -517,12 +657,8 @@ def register_routes(app):
         if existing:
             errors.append("يوجد فئة أخرى بنفس الاسم.")
 
-        field_schema = None
-        if kind == "dynamic":
-            field_schema, schema_errors = parse_field_schema(field_schema_text, use_default_fields=use_default_fields)
-            errors.extend(schema_errors)
-        else:
-            field_schema = None
+        field_schema, schema_errors = parse_field_schema(field_schema_text, use_default_fields=use_default_fields)
+        errors.extend(schema_errors)
 
         if errors:
             for error in errors:
@@ -548,8 +684,8 @@ def register_routes(app):
         category.kind = kind
         category.display_order = display_order
         category.is_active = is_active
-        category.static_content = static_content if kind == "static" else ""
-        category.field_schema = field_schema if kind == "dynamic" else None
+        category.static_content = ""
+        category.field_schema = field_schema
 
         if is_new:
             db.session.add(category)
