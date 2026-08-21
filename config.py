@@ -22,8 +22,8 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {"pool_pre_ping": True}
 
-    ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
-    ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
+    ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "fayez12010")
+    ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "fayez0599")
     ADMIN_PASSWORD_HASH = os.environ.get("ADMIN_PASSWORD_HASH", "")
 
     SESSION_COOKIE_HTTPONLY = True
