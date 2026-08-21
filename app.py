@@ -1,6 +1,7 @@
 import json
 import re
 from datetime import datetime, timedelta
+from difflib import SequenceMatcher
 from functools import wraps
 
 from flask import (
@@ -35,7 +36,6 @@ def create_app():
         db.create_all()
         ensure_database_structure()
         from seed_data import seed_categories
-
         seed_categories()
 
     register_error_handlers(app)
@@ -49,10 +49,12 @@ def ensure_database_structure():
 
     if "listings" in tables:
         listing_columns = {col["name"] for col in inspector.get_columns("listings")}
+
         if "is_visible" not in listing_columns:
             db.session.execute(
                 text("ALTER TABLE listings ADD COLUMN is_visible BOOLEAN DEFAULT TRUE")
             )
+
         if "updated_at" not in listing_columns:
             db.session.execute(
                 text("ALTER TABLE listings ADD COLUMN updated_at DATETIME")
@@ -91,23 +93,80 @@ def normalize_phone(phone):
     return digits
 
 
+def normalize_arabic_text(value):
+    value = (value or "").strip().lower()
+
+    replacements = {
+        "أ": "ا",
+        "إ": "ا",
+        "آ": "ا",
+        "ة": "ه",
+        "ى": "ي",
+        "ؤ": "و",
+        "ئ": "ي",
+    }
+
+    for old, new in replacements.items():
+        value = value.replace(old, new)
+
+    value = re.sub(r"[^\w\s\u0600-\u06FF]", " ", value)
+    value = re.sub(r"\s+", " ", value).strip()
+    return value
+
+
+def fuzzy_text_match(haystack, query):
+    haystack_n = normalize_arabic_text(haystack)
+    query_n = normalize_arabic_text(query)
+
+    if not query_n:
+        return True
+
+    if query_n in haystack_n:
+        return True
+
+    hay_words = haystack_n.split()
+    query_words = query_n.split()
+
+    for qword in query_words:
+        if qword in haystack_n:
+            continue
+
+        matched = False
+        for hword in hay_words:
+            ratio = SequenceMatcher(None, qword, hword).ratio()
+            if ratio >= 0.75:
+                matched = True
+                break
+
+        if not matched:
+            return False
+
+    return True
+
+
 def category_matches(cat, query_text):
-    haystack = " ".join(
-        [cat.group_name or "", cat.name or "", cat.static_content or ""]
-    ).lower()
-    return query_text in haystack
+    haystack = " ".join([
+        cat.group_name or "",
+        cat.name or "",
+        cat.static_content or "",
+    ])
+    return fuzzy_text_match(haystack, query_text)
 
 
 def listing_matches(listing, query_text="", location=""):
     if location and listing.get("location") != location:
         return False
+
     if not query_text:
         return True
+
     parts = [listing.category.name or "", listing.phone or ""]
+
     for field in listing.category.get_fields():
         parts.append(str(listing.get(field.get("key"), "")))
-    haystack = " ".join(parts).lower()
-    return query_text in haystack
+
+    haystack = " ".join(parts)
+    return fuzzy_text_match(haystack, query_text)
 
 
 def validate_field(field, value):
@@ -304,15 +363,9 @@ def parse_bulk_listings_text(raw_text):
             if urls:
                 for url in urls:
                     lowered = url.lower()
-                    if any(
-                        host in lowered
-                        for host in ["maps.app", "google.com/maps", "goo.gl/maps"]
-                    ):
+                    if any(host in lowered for host in ["maps.app", "google.com/maps", "goo.gl/maps"]):
                         maps_url = maps_url or url
-                    elif any(
-                        host in lowered
-                        for host in ["instagram", "instagr.am", "tiktok"]
-                    ):
+                    elif any(host in lowered for host in ["instagram", "instagr.am", "tiktok"]):
                         social_url = social_url or url
                 if line == urls[0]:
                     continue
@@ -396,7 +449,7 @@ def upsert_listing_for_category(category, entry_data):
 def build_public_items(query_text="", location="", category_id=None, include_empty=True):
     categories = Category.query.filter_by(is_active=True).order_by(Category.display_order.asc()).all()
     items = []
-    query_text = (query_text or "").strip().lower()
+    query_text = (query_text or "").strip()
 
     for cat in categories:
         if category_id and cat.id != category_id:
@@ -424,7 +477,7 @@ def build_public_items(query_text="", location="", category_id=None, include_emp
 def filter_admin_listings(query, query_text="", category_id=None, location="", visibility="all"):
     listings = query.order_by(Listing.updated_at.desc(), Listing.created_at.desc()).all()
     filtered = []
-    query_text = (query_text or "").strip().lower()
+    query_text = (query_text or "").strip()
 
     for listing in listings:
         if category_id and listing.category_id != category_id:
@@ -471,8 +524,10 @@ def register_routes(app):
         query_text = request.args.get("q", "").strip()
         location = request.args.get("location", "").strip()
         category_id = request.args.get("category_id", type=int)
+
         items = build_public_items(query_text, location, category_id, include_empty=True)
         categories = Category.query.filter_by(is_active=True).order_by(Category.display_order.asc()).all()
+
         return render_template(
             "index.html",
             items=items,
@@ -499,8 +554,7 @@ def register_routes(app):
                 .all()
             )
             listings = [
-                listing
-                for listing in listings
+                listing for listing in listings
                 if listing_matches(listing, query_text, location)
             ]
 
